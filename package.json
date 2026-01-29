@@ -19,6 +19,9 @@
   "homepage": "https://github.com/jonatan019-alf/pedidos#readme",
   "dependencies": {
     "cors": "^2.8.6",
-    "express": "^5.2.1"
+    "express": "^5.2.1",
+    "express-session": "^1.19.0",
+    "pg": "^8.17.2",
+    "socket.io": "^4.8.3"
   }
 }

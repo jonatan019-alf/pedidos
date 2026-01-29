@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>High Blend - Pedidos</title>
+    <style>
+        :root { --rojo: #d32f2f; --negro: #1a1a1a; --gris-fondo: #f4f4f4; --verde: #2e7d32; }
+        body { font-family: 'Arial', sans-serif; background: var(--gris-fondo); margin: 0; padding: 0; }
+        header { background: white; padding: 15px; text-align: center; border-bottom: 3px solid var(--rojo); }
+        header h2 { margin: 0; color: var(--rojo); text-transform: uppercase; font-size: 1.5rem; }
+        
+        .container { max-width: 600px; margin: 0 auto; padding: 15px; padding-bottom: 130px; }
+        .cat-header { background: #e67e22; color: white; padding: 10px; border-radius: 4px; margin: 20px 0 10px; font-weight: bold; text-transform: uppercase; }
+        .item-card { background: white; padding: 15px; margin-bottom: 2px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--rojo); border-bottom: 1px solid #eee; transition: opacity 0.3s ease; }
+        .item-info strong { font-size: 1.1rem; text-transform: uppercase; display: block; }
+        .item-info p { color: #666; font-size: 0.9rem; margin: 4px 0; }
+        .precio { color: var(--negro); font-weight: bold; font-size: 1.1rem; display: block; margin-top: 5px; }
+        
+        .btn-add { background: var(--rojo); color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; text-transform: uppercase; cursor: pointer; }
+        .btn-add:disabled { background: #ccc; cursor: not-allowed; }
+
+        .floating-cart { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 450px; background: var(--negro); color: white; padding: 18px 25px; border-radius: 12px; display: none; justify-content: space-between; align-items: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 1000; }
+        
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; z-index: 2000; overflow-y: auto; }
+        .modal-content { background: white; margin: 10% auto; width: 90%; max-width: 450px; padding: 20px; border-radius: 8px; position: relative; }
+        
+        .input-group input, .input-group select { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1rem; }
+        .cart-list-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
+        .btn-remove { background: var(--rojo); color: white; border: none; width: 35px; height: 35px; border-radius: 4px; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        
+        .total-container { margin: 15px 0; padding: 10px 0; border-top: 2px solid #eee; text-align: right; }
+        .total-text { font-size: 1.4rem; font-weight: bold; color: var(--rojo); }
+        .btn-finalizar { background: var(--rojo); color: white; width: 100%; padding: 15px; border: none; border-radius: 4px; font-weight: bold; text-transform: uppercase; cursor: pointer; }
+        .btn-seguir { background: #e0e0e0; width: 100%; padding: 10px; border: none; margin-top: 10px; border-radius: 4px; cursor: pointer; }
+
+        .success-card { text-align: center; }
+        .success-icon { font-size: 50px; color: var(--verde); margin-bottom: 10px; }
+        .ticket-detail { background: #f9f9f9; padding: 15px; border-radius: 6px; text-align: left; margin: 15px 0; font-family: monospace; border: 1px dashed #ccc; }
+        .btn-whatsapp { background: #25d366; color: white; width: 100%; padding: 15px; border: none; border-radius: 4px; font-weight: bold; text-decoration: none; display: block; margin-top: 10px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h2>NUESTRO MENÚ 🍔</h2>
+</header>
+
+<div class="container" id="lista-menu"></div>
+
+<div class="floating-cart" id="btn-ver-carrito" onclick="toggleModal('modal-carrito', true)">
+    <span style="font-weight: bold;">Ver pedido (<span id="cart-count">0</span>)</span>
+    <span id="cart-total-footer" style="font-weight: bold; font-size: 1.2rem;">$0</span>
+</div>
+
+<div class="modal" id="modal-carrito">
+    <div class="modal-content">
+        <h3 style="margin-top: 0; text-transform: uppercase;">Tu Pedido 🛒</h3>
+        <div id="items-detalle"></div>
+        <div class="total-container"><span class="total-text">TOTAL: <span id="total-modal">$0</span></span></div>
+
+        <div class="input-group">
+            <label style="font-size: 0.85rem; font-weight: bold;">Método de Entrega:</label>
+            <select id="tipo_entrega" onchange="toggleEntrega()">
+                <option value="delivery">Delivery</option>
+                <option value="retiro">Retiro en local</option>
+            </select>
+            <label style="font-size: 0.85rem; font-weight: bold;">Método de Pago:</label>
+            <select id="metodo_pago">
+                <option value="efectivo">Efectivo</option>
+                <option value="transferencia">Transferencia</option>
+            </select>
+            <input type="text" id="nombre" placeholder="¿A nombre de quién?">
+            <input type="text" id="direccion" placeholder="Dirección de entrega">
+            <input type="tel" id="tel" placeholder="Teléfono" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+        </div>
+        
+        <button class="btn-finalizar" id="btn-procesar" onclick="enviarPedido()">FINALIZAR COMPRA</button>
+        <button class="btn-seguir" onclick="toggleModal('modal-carrito', false)">SEGUIR COMPRANDO</button>
+    </div>
+</div>
+
+<div class="modal" id="modal-exito">
+    <div class="modal-content success-card">
+        <div class="success-icon">✔</div>
+        <h2 style="color: var(--verde); margin: 0;">¡PEDIDO RECIBIDO!</h2>
+        <p>Tu orden <strong>#<span id="res-pedido-id"></span></strong> ha sido enviada.</p>
+        
+        <div class="ticket-detail" id="ticket-final"></div>
+
+        <div id="info-transferencia" style="display:none; background: #fff3cd; padding: 10px; border-radius: 4px; font-size: 0.9rem; margin-bottom: 15px; border: 1px solid #ffeeba;">
+            <strong>ALIAS:</strong> HighBlend.Burgers<br>
+            <strong>CBU:</strong> 00000031000...<br>
+            <em>Enviá el comprobante por WhatsApp.</em>
+        </div>
+
+        <a href="#" id="link-wsp" target="_blank" class="btn-whatsapp">CONFIRMAR POR WHATSAPP</a>
+        <button class="btn-seguir" onclick="location.reload()">CERRAR Y VOLVER AL MENÚ</button>
+    </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+
+    socket.on('cambio-stock', (data) => {
+        const productoElemento = document.getElementById(`prod-${data.id}`);
+        if (productoElemento) {
+            if (data.disponible) {
+                productoElemento.style.display = 'flex';
+                const btn = productoElemento.querySelector('.btn-add');
+                if(btn) { btn.disabled = false; btn.innerText = "AGREGAR"; }
+            } else {
+                productoElemento.style.display = 'none';
+                const btn = productoElemento.querySelector('.btn-add');
+                if(btn) { btn.disabled = true; btn.innerText = "AGOTADO"; }
+            }
+        }
+    });
+
+    let carrito = [];
+    const ORDEN_PRIORIDAD = ['PROMOCIONES', 'CLASICAS', 'ESPECIALES', 'PAPAS', 'BEBIDAS', 'CERVEZAS', 'MEDALLONES', 'SALSAS', 'HEINZ', 'TOPPINGS'];
+
+    async function cargar() {
+        try {
+            const [resProd, resCat] = await Promise.all([
+                fetch('/hamburguesas'),
+                fetch('/categorias')
+            ]);
+            const productos = await resProd.json();
+            const categoriasDB = await resCat.json();
+            let categoriasNombres = categoriasDB.map(c => c.nombre);
+            let listaOrdenada = ORDEN_PRIORIDAD.filter(cat => categoriasNombres.includes(cat));
+            let extras = categoriasNombres.filter(cat => !ORDEN_PRIORIDAD.includes(cat));
+            const ordenFinal = [...listaOrdenada, ...extras];
+
+            const div = document.getElementById('lista-menu');
+            div.innerHTML = '';
+
+            ordenFinal.forEach(nombreCat => {
+                const productosDeEstaCat = productos.filter(h => h.categoria === nombreCat);
+                if(productosDeEstaCat.length > 0) {
+                    div.innerHTML += `<div class="cat-header">${nombreCat}</div>`;
+                    productosDeEstaCat.forEach(h => {
+                        div.innerHTML += `
+                            <div class="item-card" id="prod-${h.id}">
+                                <div class="item-info">
+                                    <strong>${h.nombre}</strong>
+                                    <p>${h.descripcion || ''}</p>
+                                    <span class="precio">$${Number(h.precio).toLocaleString('es-AR')}</span>
+                                </div>
+                                <button class="btn-add" onclick="agregar(${h.id}, '${h.nombre}', ${h.precio})">AGREGAR</button>
+                            </div>`;
+                    });
+                }
+            });
+        } catch (e) { console.error("Error al cargar el menú:", e); }
+    }
+
+    function toggleEntrega() {
+        const tipo = document.getElementById('tipo_entrega').value;
+        const inputDir = document.getElementById('direccion');
+        inputDir.style.display = tipo === 'retiro' ? 'none' : 'block';
+        inputDir.value = tipo === 'retiro' ? 'RETIRO EN LOCAL' : '';
+    }
+
+    function agregar(id, nombre, precio) {
+        const item = carrito.find(p => p.hamburguesa_id === id);
+        item ? item.cantidad++ : carrito.push({hamburguesa_id: id, nombre, precio, cantidad: 1});
+        actualizarUI();
+    }
+
+    function actualizarUI() {
+        const bar = document.getElementById('btn-ver-carrito');
+        const count = document.getElementById('cart-count');
+        const totalFooter = document.getElementById('cart-total-footer');
+        const totalModal = document.getElementById('total-modal');
+        const detalle = document.getElementById('items-detalle');
+        let total = 0; let unidades = 0;
+        detalle.innerHTML = '';
+        carrito.forEach((p, index) => {
+            total += p.precio * p.cantidad; unidades += p.cantidad;
+            detalle.innerHTML += `<div class="cart-list-item"><span>${p.cantidad}x ${p.nombre}</span><div style="display:flex; align-items:center;"><strong style="margin-right:10px;">$${(p.precio * p.cantidad).toLocaleString('es-AR')}</strong><button class="btn-remove" onclick="eliminar(${index})">✕</button></div></div>`;
+        });
+        bar.style.display = unidades > 0 ? 'flex' : 'none';
+        count.innerText = unidades;
+        totalFooter.innerText = `$${total.toLocaleString('es-AR')}`;
+        totalModal.innerText = `$${total.toLocaleString('es-AR')}`;
+    }
+
+    function eliminar(index) {
+        carrito[index].cantidad > 1 ? carrito[index].cantidad-- : carrito.splice(index, 1);
+        actualizarUI();
+        if(carrito.length === 0) toggleModal('modal-carrito', false);
+    }
+
+    function toggleModal(id, show) { document.getElementById(id).style.display = show ? 'block' : 'none'; }
+
+    async function enviarPedido() {
+        const btn = document.getElementById('btn-procesar');
+        const inputNombre = document.getElementById('nombre');
+        const inputDir = document.getElementById('direccion');
+        const inputTel = document.getElementById('tel');
+        const inputPago = document.getElementById('metodo_pago');
+
+        if(!inputNombre.value || !inputDir.value || !inputTel.value) return alert("Completa tus datos");
+        
+        btn.disabled = true;
+        btn.innerText = "PROCESANDO...";
+
+        try {
+            const res = await fetch('/pedidos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    cliente: inputNombre.value, 
+                    direccion: inputDir.value, 
+                    telefono: inputTel.value, 
+                    tipo_entrega: document.getElementById('tipo_entrega').value,
+                    metodo_pago: inputPago.value,
+                    items: carrito 
+                })
+            });
+
+            if(res.ok) {
+                const datos = await res.json();
+                
+                // --- LINEA AGREGADA PARA LA ALERTA ---
+                socket.emit('pedido-realizado', { id: datos.pedidoId });
+                // ------------------------------------
+
+                mostrarExito(datos, inputNombre.value, inputDir.value, inputPago.value);
+            } else {
+                alert("Error al procesar el pedido");
+                btn.disabled = false;
+                btn.innerText = "FINALIZAR COMPRA";
+            }
+        } catch (error) {
+            console.error(error);
+            btn.disabled = false;
+            btn.innerText = "FINALIZAR COMPRA";
+        }
+    }
+
+    function mostrarExito(datos, cliente, direccion, pago) {
+        toggleModal('modal-carrito', false);
+        document.getElementById('res-pedido-id').innerText = datos.pedidoId;
+        let detalleTexto = ""; let detalleWsp = "";
+        carrito.forEach(p => {
+            detalleTexto += `${p.cantidad}x ${p.nombre}<br>`;
+            detalleWsp += `✅ ${p.cantidad}x ${p.nombre}\n`;
+        });
+        document.getElementById('ticket-final').innerHTML = `<strong>CLIENTE:</strong> ${cliente}<br><strong>TOTAL:</strong> $${datos.total.toLocaleString('es-AR')}<br><br>${detalleTexto}`;
+        if(pago === 'transferencia') document.getElementById('info-transferencia').style.display = 'block';
+        const msg = `*NUEVO PEDIDO #${datos.pedidoId} - HIGH BLEND* 🍔\n\n👤 *Cliente:* ${cliente}\n📍 *Dirección:* ${direccion}\n💳 *Pago:* ${pago.toUpperCase()}\n--------------------------\n${detalleWsp}--------------------------\n💰 *TOTAL: $${datos.total.toLocaleString('es-AR')}*`;
+        document.getElementById('link-wsp').href = `https://wa.me/5491168184740?text=${encodeURIComponent(msg)}`;
+        toggleModal('modal-exito', true);
+    }
+
+    cargar();
+</script>
+</body>
+</html>

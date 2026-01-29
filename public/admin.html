@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>High Blend - Panel de Control</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        :root { --rojo: #d32f2f; --negro: #1a1a1a; --gris-oscuro: #2d2d2d; --verde: #2e7d32; --azul: #1976d2; }
+        body { font-family: 'Arial', sans-serif; background: var(--negro); color: white; margin: 0; padding: 0; }
+        
+        /* ESTILO DEL MENSAJE FLOTANTE (TOAST) */
+        #toast { 
+            position: fixed; 
+            top: 20px; 
+            right: 20px; 
+            padding: 15px 25px; 
+            border-radius: 4px; 
+            color: white; 
+            background-color: var(--verde); /* CAMBIADO A VERDE */
+            font-weight: bold; 
+            z-index: 5000; 
+            display: none; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.5); 
+            animation: slideIn 0.5s; 
+        }
+
+        /* ANIMACIÓN DE PARPADEO PARA CARD NUEVA */
+        @keyframes parpadeo-alerta {
+            0% { border: 4px solid var(--rojo); box-shadow: 0 0 10px var(--rojo); }
+            50% { border: 4px solid #ffeb3b; box-shadow: 0 0 30px #ffeb3b; }
+            100% { border: 4px solid var(--rojo); box-shadow: 0 0 10px var(--rojo); }
+        }
+        .card-nueva {
+            animation: parpadeo-alerta 0.8s infinite !important;
+            transform: scale(1.02);
+            z-index: 100;
+            cursor: pointer;
+        }
+
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+
+        #login-screen { display: flex; height: 100vh; justify-content: center; align-items: center; background: var(--negro); }
+        .login-box { background: white; padding: 30px; border-radius: 8px; text-align: center; width: 300px; color: #333; }
+        .login-box input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .btn-login { width: 100%; padding: 10px; background: var(--rojo); color: white; border: none; cursor: pointer; font-weight: bold; border-radius: 4px; }
+
+        #admin-panel { display: none; padding: 20px; }
+        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--rojo); padding-bottom: 15px; margin-bottom: 20px; }
+        
+        .stats { background: var(--gris-oscuro); padding: 10px 20px; border-radius: 8px; display: flex; gap: 20px; }
+        .stat-item { text-align: center; }
+        .stat-item span { display: block; font-size: 0.7rem; color: #aaa; text-transform: uppercase; }
+        .stat-item strong { font-size: 1.2rem; color: var(--rojo); }
+
+        .nav-tabs { margin-bottom: 20px; display: flex; gap: 10px; }
+        .nav-tabs button { padding: 12px 25px; cursor: pointer; background: var(--gris-oscuro); color: white; border: none; border-radius: 4px; font-weight: bold; transition: 0.3s; }
+        .nav-tabs button.active { background: var(--rojo); }
+
+        .grid-pedidos { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; width: 100%; }
+        .card { background: white; color: #333; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; height: 500px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); transition: 0.3s; border: 4px solid transparent; }
+        .card-header { background: #eee; padding: 12px; display: flex; justify-content: space-between; font-weight: bold; border-bottom: 2px solid #ddd; }
+        .card-body { padding: 15px; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; }
+        .card-footer { padding: 10px; background: #f9f9f9; display: flex; gap: 5px; }
+
+        .item-line { border-bottom: 1px dashed #ccc; padding: 6px 0; display: flex; justify-content: space-between; }
+        .cliente-info { font-size: 0.85rem; color: #666; margin-top: auto; background: #f0f0f0; padding: 10px; border-radius: 4px; border-left: 4px solid var(--rojo); }
+        
+        .btn { border: none; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; flex: 1; text-transform: uppercase; font-size: 0.75rem; }
+        .btn-ready { background: var(--verde); color: white; }
+        .btn-cancel { background: #777; color: white; }
+        
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; color: white; }
+        .badge-pendiente { background: #e67e22; }
+        .badge-esperando { background: #f1c40f; color: #000; } 
+        .status-esperando { border: 4px solid #f1c40f !important; }
+
+        .menu-container { background: white; color: #333; padding: 25px; border-radius: 8px; }
+        .search-bar { width: 100%; padding: 12px; margin-bottom: 20px; border: 2px solid #eee; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
+        
+        .switch { position: relative; display: inline-block; width: 34px; height: 20px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--verde); }
+        input:checked + .slider:before { transform: translateX(14px); }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 4000; }
+        .modal-content { background: white; color: #333; width: 90%; max-width: 400px; margin: 50px auto; padding: 25px; border-radius: 8px; box-sizing: border-box; }
+    </style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<div id="modal-editar" class="modal">
+    <div class="modal-content">
+        <h3 style="margin-top:0; color: var(--azul);">Editar Producto</h3>
+        <input type="hidden" id="edit-id">
+        <label>Nombre:</label><input type="text" id="edit-nombre" style="width:100%; padding:8px; margin-bottom:10px;">
+        <label>Precio ($):</label><input type="number" id="edit-precio" style="width:100%; padding:8px; margin-bottom:10px;">
+        <label>Categoría:</label><select id="edit-categoria-select" style="width:100%; padding:8px; margin-bottom:10px;"></select>
+        <label>Descripción:</label><input type="text" id="edit-desc" style="width:100%; padding:8px; margin-bottom:10px;">
+        <button onclick="actualizarProducto()" style="background:var(--verde); color:white; border:none; padding:12px; width:100%; border-radius:4px; font-weight:bold; cursor:pointer;">GUARDAR CAMBIOS</button>
+        <button style="background:#ccc; border:none; width:100%; padding:10px; margin-top:10px; cursor:pointer; border-radius:4px;" onclick="cerrarModal()">CANCELAR</button>
+    </div>
+</div>
+
+<div id="login-screen">
+    <div class="login-box">
+        <h2 style="color: var(--rojo); margin-top: 0;">HIGH BLEND ADMIN</h2>
+        <input type="text" id="user" placeholder="Usuario">
+        <input type="password" id="pass" placeholder="Contraseña">
+        <button class="btn-login" onclick="intentarLogin()">ENTRAR</button>
+        <p id="error-msg" style="color: red; display: none; font-size: 0.8rem; margin-top: 10px;">Usuario o clave incorrectos</p>
+    </div>
+</div>
+
+<div id="admin-panel">
+    <header>
+        <div>
+            <h2 style="margin:0">CONTROL DE COCINA 👨‍🍳</h2>
+            <input type="date" id="filtro-fecha" onchange="cargarPedidos()" style="padding: 8px; margin-top: 10px; border-radius: 4px;">
+        </div>
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div class="stats">
+                <div class="stat-item"><span>Venta del Día</span><strong id="stat-ventas">$0</strong></div>
+                <div class="stat-item"><span>Pedidos</span><strong id="stat-cantidad">0</strong></div>
+            </div>
+            <button onclick="logout()" style="background: none; border: 1px solid white; color: white; padding: 8px 15px; cursor: pointer; border-radius: 4px;">Salir</button>
+        </div>
+    </header>
+
+    <div class="nav-tabs">
+        <button id="btn-tab-pedidos" class="active" onclick="switchTab('pedidos')">📦 PEDIDOS</button>
+        <button id="btn-tab-menu" onclick="switchTab('menu')">🍔 GESTIONAR MENÚ</button>
+    </div>
+
+    <div id="tab-pedidos">
+        <div class="grid-pedidos" id="contenedor-pedidos"></div>
+    </div>
+
+    <div id="tab-menu" style="display: none;">
+        <div class="menu-container">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px;">
+                <div style="background: #f4f4f4; padding: 20px; border-radius: 8px;">
+                    <h3>📁 Categorías</h3>
+                    <div style="display: flex; gap: 5px; margin-bottom: 15px;">
+                        <input type="text" id="cat-nombre" placeholder="Nueva..." style="flex:1; padding: 8px;">
+                        <button onclick="agregarCategoria()" style="background:var(--azul); color:white; border:none; padding:10px 15px; cursor:pointer; border-radius:4px;">+</button>
+                    </div>
+                    <ul id="lista-categorias-ui" style="list-style:none; padding:0; color:#333; max-height: 150px; overflow-y: auto;"></ul>
+                </div>
+                <div>
+                    <h3>+ Nuevo Producto</h3>
+                    <input type="text" id="p-nombre" placeholder="Nombre" style="width:100%; padding:8px; margin-bottom:5px;">
+                    <input type="text" id="p-desc" placeholder="Descripción" style="width:100%; padding:8px; margin-bottom:5px;">
+                    <input type="number" id="p-precio" placeholder="Precio" style="width:100%; padding:8px; margin-bottom:5px;">
+                    <select id="p-categoria-select" style="width:100%; padding:8px; margin-bottom:5px;"></select>
+                    <button onclick="guardarProducto()" style="background: var(--verde); color: white; border: none; padding: 12px; width:100%; cursor: pointer; font-weight: bold; border-radius: 4px;">GUARDAR</button>
+                </div>
+            </div>
+            <input type="text" id="buscador-prod" placeholder="🔍 Buscar..." class="search-bar" onkeyup="filtrarProductos()">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; color:#333;">
+                <thead><tr style="background: #f4f4f4;"><th style="padding:12px;">Nombre</th><th>Categoría</th><th>Precio</th><th style="text-align:center;">Stock</th><th style="text-align:center;">Acción</th></tr></thead>
+                <tbody id="tabla-productos"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    const socket = io();
+    let productosCache = [];
+    let pedidosNuevos = new Set(); 
+
+    // ESCUCHAR NUEVOS PEDIDOS
+    socket.on('pedido-realizado', (data) => {
+        const id = data.id || data.pedidoId;
+        if(id) {
+            pedidosNuevos.add(Number(id));
+            document.title = "⚠️ NUEVO PEDIDO ⚠️";
+            cargarPedidos(); 
+        }
+    });
+
+    function detenerAlerta(id) {
+        const idNum = Number(id);
+        if(pedidosNuevos.has(idNum)) {
+            pedidosNuevos.delete(idNum);
+            if(pedidosNuevos.size === 0) {
+                document.title = "High Blend - Panel de Control";
+            }
+            cargarPedidos(); 
+        }
+    }
+
+    // --- NAVEGACIÓN ---
+    function switchTab(tab) {
+        document.getElementById('tab-pedidos').style.display = tab === 'pedidos' ? 'block' : 'none';
+        document.getElementById('tab-menu').style.display = tab === 'pedidos' ? 'none' : 'block';
+        document.getElementById('btn-tab-pedidos').className = tab === 'pedidos' ? 'active' : '';
+        document.getElementById('btn-tab-menu').className = tab === 'menu' ? 'active' : '';
+        if(tab === 'menu') { cargarCategorias(); listarProductos(); } else { cargarPedidos(); }
+    }
+
+    async function intentarLogin() {
+        const user = document.getElementById('user').value;
+        const pass = document.getElementById('pass').value;
+        const res = await fetch('/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user, pass }) });
+        if (res.ok) {
+            document.getElementById('login-screen').style.display = 'none';
+            document.getElementById('admin-panel').style.display = 'block';
+            cargarPedidos();
+            setInterval(cargarPedidos, 45000);
+        } else { document.getElementById('error-msg').style.display = 'block'; }
+    }
+
+    // --- PRODUCTOS ---
+    async function listarProductos() {
+        const res = await fetch('/hamburguesas-admin');
+        productosCache = await res.json();
+        renderizarTabla(productosCache);
+    }
+
+    function renderizarTabla(lista) {
+        const tabla = document.getElementById('tabla-productos');
+        let html = "";
+        lista.forEach(p => {
+            const pData = JSON.stringify(p).replace(/'/g, "&apos;").replace(/"/g, "&quot;");
+            html += `<tr style="border-bottom: 1px solid #eee;">
+                <td style="padding:12px;"><strong>${p.nombre}</strong></td>
+                <td>${p.categoria}</td>
+                <td>$${Number(p.precio).toLocaleString()}</td>
+                <td style="text-align:center;"><label class="switch"><input type="checkbox" ${p.disponible ? 'checked' : ''} onchange="toggleDisponible(${p.id}, this.checked)"><span class="slider"></span></label></td>
+                <td style="text-align:center;"><button onclick='abrirEditor(${pData})' style="color:var(--azul); background:none; border:none; cursor:pointer;">Editar</button></td>
+            </tr>`;
+        });
+        tabla.innerHTML = html;
+    }
+
+    async function guardarProducto() {
+        const nombre = document.getElementById('p-nombre').value;
+        const descripcion = document.getElementById('p-desc').value;
+        const precio = document.getElementById('p-precio').value;
+        const categoria = document.getElementById('p-categoria-select').value;
+        
+        const res = await fetch('/productos', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ nombre, descripcion, precio, categoria })
+        });
+        if(res.ok) {
+            mostrarNotificacion("✅ Producto Guardado");
+            listarProductos();
+            document.getElementById('p-nombre').value = "";
+            document.getElementById('p-desc').value = "";
+            document.getElementById('p-precio').value = "";
+        }
+    }
+
+    function filtrarProductos() {
+        const term = document.getElementById('buscador-prod').value.toLowerCase();
+        renderizarTabla(productosCache.filter(p => p.nombre.toLowerCase().includes(term) || p.categoria.toLowerCase().includes(term)));
+    }
+
+    async function toggleDisponible(id, estado) {
+        await fetch(`/productos/${id}/disponible`, { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ disponible: estado }) });
+        mostrarNotificacion(estado ? "✅ Activado" : "❌ Agotado");
+    }
+
+    // --- PEDIDOS ---
+    async function cargarPedidos() {
+        const fecha = document.getElementById('filtro-fecha').value || new Date().toISOString().split('T')[0];
+        const res = await fetch(`/pedidos/admin/lista?fecha=${fecha}`);
+        const pedidos = await res.json();
+        const contenedor = document.getElementById('contenedor-pedidos');
+        let totalVentas = 0;
+        let htmlPedidos = "";
+
+        pedidos.forEach(p => {
+            if(p.estado !== 'cancelado') totalVentas += parseFloat(p.total);
+            const esNuevo = pedidosNuevos.has(Number(p.id)) ? 'card-nueva' : '';
+            
+            htmlPedidos += `
+                <div class="card ${esNuevo} ${p.estado === 'esperando_pago' ? 'status-esperando' : ''}" onclick="detenerAlerta(${p.id})">
+                    <div class="card-header"><span>#${p.id}</span><span class="badge ${p.estado === 'pendiente' ? 'badge-pendiente' : 'badge-esperando'}">${p.estado.toUpperCase()}</span></div>
+                    <div class="card-body">
+                        ${p.items.map(i => `<div class="item-line"><span>${i.cantidad}x ${i.nombre}</span></div>`).join('')}
+                        <div class="cliente-info"><strong>👤 ${p.cliente}</strong><br>📍 ${p.direccion}<br>💳 ${p.metodo_pago}<h3>$${Number(p.total).toLocaleString()}</h3></div>
+                    </div>
+                    <div class="card-footer">
+                        ${p.estado === 'pendiente' ? `<button class="btn btn-ready" onclick="event.stopPropagation(); cambiarEstado(${p.id}, 'enviado')">DESPACHAR</button>` : ''}
+                    </div>
+                </div>`;
+        });
+        contenedor.innerHTML = htmlPedidos;
+        document.getElementById('stat-ventas').innerText = `$${totalVentas.toLocaleString()}`;
+        document.getElementById('stat-cantidad').innerText = pedidos.length;
+    }
+
+    async function cambiarEstado(id, nuevo) {
+        await fetch(`/pedidos/${id}/estado`, { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({estado: nuevo}) });
+        pedidosNuevos.delete(Number(id)); 
+        cargarPedidos();
+    }
+
+    // --- CATEGORIAS Y OTROS ---
+    async function cargarCategorias() {
+        const res = await fetch('/categorias');
+        const cats = await res.json();
+        let html = ""; let opts = "<option disabled selected>Categoría...</option>";
+        cats.forEach(c => {
+            html += `<li style="display:flex; justify-content:space-between; padding:5px 0;">${c.nombre}<button onclick="eliminarCategoria(${c.id})" style="color:red; border:none; background:none; cursor:pointer;">×</button></li>`;
+            opts += `<option value="${c.nombre}">${c.nombre}</option>`;
+        });
+        document.getElementById('lista-categorias-ui').innerHTML = html;
+        document.getElementById('p-categoria-select').innerHTML = opts;
+        document.getElementById('edit-categoria-select').innerHTML = opts;
+    }
+
+    function abrirEditor(p) {
+        document.getElementById('edit-id').value = p.id;
+        document.getElementById('edit-nombre').value = p.nombre;
+        document.getElementById('edit-precio').value = p.precio;
+        document.getElementById('edit-desc').value = p.descripcion || "";
+        document.getElementById('edit-categoria-select').value = p.categoria;
+        document.getElementById('modal-editar').style.display = 'block';
+    }
+    
+    async function actualizarProducto() {
+        const id = document.getElementById('edit-id').value;
+        const nombre = document.getElementById('edit-nombre').value;
+        const precio = document.getElementById('edit-precio').value;
+        const descripcion = document.getElementById('edit-desc').value;
+        const categoria = document.getElementById('edit-categoria-select').value;
+        
+        const res = await fetch(`/productos/${id}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ nombre, descripcion, precio, categoria })
+        });
+        if(res.ok) {
+            cerrarModal();
+            listarProductos();
+            mostrarNotificacion("✅ Actualizado Correctamente");
+        }
+    }
+
+    function cerrarModal() { document.getElementById('modal-editar').style.display = 'none'; }
+    function mostrarNotificacion(m) { 
+        const t = document.getElementById('toast'); 
+        t.innerText = m; 
+        t.style.display = 'block'; 
+        setTimeout(() => t.style.display='none', 3000); 
+    }
+    async function logout() { await fetch('/logout', {method:'POST'}); location.reload(); }
+    document.getElementById('filtro-fecha').value = new Date().toISOString().split('T')[0];
+</script>
+</body>
+</html>
