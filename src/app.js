@@ -13,6 +13,7 @@ const io = new Server(server, {
     cors: { origin: "*" }
 });
 
+let localAbierto = true; // Estado inicial
 // Compartir io con las rutas de pedidos
 app.set('socketio', io);
 
@@ -36,14 +37,11 @@ function auth(req, res, next) {
     res.status(401).json({ message: "No autorizado" });
 }
 
-// --- SECCIÓN CORREGIDA ---
 io.on('connection', (socket) => {
     console.log('📱 Cliente conectado vía WebSockets');
     
-    // Escuchar el evento que viene desde el cliente de pedidos
     socket.on('pedido-realizado', (data) => {
         console.log("Nuevo pedido recibido, avisando a los administradores...");
-        // Re-emitir con el mismo nombre para que el admin lo reciba
         io.emit('pedido-realizado', data);
     });
 });
@@ -98,6 +96,7 @@ app.patch('/productos/:id/disponible', auth, async (req, res) => {
     }
 });
 
+// NUEVO PRODUCTO
 app.post('/productos', auth, async (req, res) => {
     const { nombre, descripcion, precio, categoria } = req.body;
     try {
@@ -105,10 +104,12 @@ app.post('/productos', auth, async (req, res) => {
             'INSERT INTO hamburguesas (nombre, descripcion, precio, categoria) VALUES ($1, $2, $3, $4)',
             [nombre, descripcion, precio, categoria.toUpperCase()]
         );
+        io.emit('nuevo-producto'); // Notifica al menú
         res.send({ success: true });
     } catch (err) { res.status(500).send(err.message); }
 });
 
+// EDITAR PRODUCTO
 app.put('/productos/:id', auth, async (req, res) => {
     const { id } = req.params;
     const { nombre, descripcion, precio, categoria } = req.body;
@@ -117,13 +118,16 @@ app.put('/productos/:id', auth, async (req, res) => {
             'UPDATE hamburguesas SET nombre = $1, descripcion = $2, precio = $3, categoria = $4 WHERE id = $5',
             [nombre, descripcion, precio, categoria.toUpperCase(), id]
         );
+        io.emit('nuevo-producto'); // Reutilizamos para refrescar cambios
         res.send({ success: true });
     } catch (err) { res.status(500).send("Error al actualizar"); }
 });
 
+// ELIMINAR PRODUCTO
 app.delete('/productos/:id', auth, async (req, res) => {
     try {
         await db.query('DELETE FROM hamburguesas WHERE id = $1', [req.params.id]);
+        io.emit('producto-eliminado'); // Notifica al menú
         res.send({ success: true });
     } catch (err) { res.status(500).send(err.message); }
 });
@@ -135,18 +139,42 @@ app.get('/categorias', async (req, res) => {
     } catch (err) { res.status(500).send(err.message); }
 });
 
+// NUEVA CATEGORIA
 app.post('/categorias', auth, async (req, res) => {
     const { nombre } = req.body;
     try {
         await db.query('INSERT INTO categorias (nombre) VALUES ($1)', [nombre.toUpperCase()]);
+        io.emit('nueva-categoria'); // Notifica al menú
         res.send({ success: true });
     } catch (err) { res.status(500).send("Error al crear categoría"); }
+});
+
+// ELIMINAR CATEGORIA
+app.delete('/categorias/:id', auth, async (req, res) => {
+    const { id } = req.params;
+    try {
+        await db.query('DELETE FROM categorias WHERE id = $1', [id]);
+        io.emit('categoria-eliminada'); // Notifica al menú
+        res.send({ success: true });
+    } catch (err) {
+        res.status(500).send("Error al eliminar categoría. Asegúrate de que no tenga productos asociados.");
+    }
 });
 
 app.use('/pedidos', pedidosRoutes);
 
 app.get('/admin', auth, (req, res) => {
     res.sendFile(path.join(__dirname, '..', 'public', 'admin.html'));
+});
+
+app.patch('/admin/estado-local', (req, res) => {
+    localAbierto = req.body.abierto;
+    io.emit('cambio-estado-local', localAbierto);
+    res.json({ success: true, abierto: localAbierto });
+});
+
+app.get('/estado-local', (req, res) => {
+    res.json({ abierto: localAbierto });
 });
 
 app.use(express.static(path.join(__dirname, '..', 'public')));

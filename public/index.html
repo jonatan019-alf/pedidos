@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>High Blend - Pedidos</title>
     <style>
-        :root { --rojo: #d32f2f; --negro: #1a1a1a; --gris-fondo: #f4f4f4; --verde: #2e7d32; }
+        :root { --rojo: #d32f2f; --negro: #1a1a1a; --gris-fondo: #f4f4f4; --verde: #2e7d32; --azul: #1976d2; }
         body { font-family: 'Arial', sans-serif; background: var(--gris-fondo); margin: 0; padding: 0; }
         header { background: white; padding: 15px; text-align: center; border-bottom: 3px solid var(--rojo); }
         header h2 { margin: 0; color: var(--rojo); text-transform: uppercase; font-size: 1.5rem; }
@@ -17,27 +17,78 @@
         .item-info p { color: #666; font-size: 0.9rem; margin: 4px 0; }
         .precio { color: var(--negro); font-weight: bold; font-size: 1.1rem; display: block; margin-top: 5px; }
         
-        .btn-add { background: var(--rojo); color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; text-transform: uppercase; cursor: pointer; }
+        .btn-container { display: flex; flex-direction: row-reverse; align-items: center; gap: 8px; }
+        .btn-add { background: var(--rojo); color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: background 0.3s; }
+        .btn-add.agregado { background: var(--verde); }
         .btn-add:disabled { background: #ccc; cursor: not-allowed; }
+        
+        .badge-count { 
+            background: var(--negro); color: white; width: 26px; height: 26px; border-radius: 50%; 
+            font-size: 0.85rem; font-weight: bold; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
 
-        .floating-cart { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 450px; background: var(--negro); color: white; padding: 18px 25px; border-radius: 12px; display: none; justify-content: space-between; align-items: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5); z-index: 1000; }
+        .floating-cart { 
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
+            width: 90%; max-width: 450px; background: var(--negro); color: white; 
+            border-radius: 15px; display: none; flex-direction: column;
+            box-shadow: 0 -5px 25px rgba(0,0,0,0.4); z-index: 1000; 
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
+            overflow: hidden; max-height: 65px;
+        }
+
+        .floating-cart.expanded {
+            max-height: 85vh; bottom: 0; width: 100%; max-width: 100%; border-radius: 25px 25px 0 0;
+        }
+
+        .drag-handle {
+            width: 40px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px;
+            margin: 8px auto 2px; display: block;
+        }
+
+        .cart-header-click {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 5px 25px 15px; cursor: pointer; width: 100%; box-sizing: border-box;
+        }
+
+        .cart-content-area {
+            padding: 0 20px 25px; overflow-y: auto; display: none; flex-direction: column;
+            background: var(--negro); height: 100%;
+        }
+
+        .floating-cart.expanded .cart-content-area { display: flex; }
+
+        #items-detalle { max-height: 200px; overflow-y: auto; margin-bottom: 10px; border-bottom: 1px solid #333; }
+        .cart-list-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #222; }
+        .btn-remove { background: var(--rojo); color: white; border: none; width: 32px; height: 32px; border-radius: 6px; cursor: pointer; }
         
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; z-index: 2000; overflow-y: auto; }
-        .modal-content { background: white; margin: 10% auto; width: 90%; max-width: 450px; padding: 20px; border-radius: 8px; position: relative; }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; z-index: 2000; overflow-y: auto; }
+        .modal-content { background: white; margin: 10% auto; width: 92%; max-width: 450px; padding: 25px; border-radius: 12px; position: relative; color: #1a1a1a; box-sizing: border-box; }
         
-        .input-group input, .input-group select { width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1rem; }
-        .cart-list-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; }
-        .btn-remove { background: var(--rojo); color: white; border: none; width: 35px; height: 35px; border-radius: 4px; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .input-group input, .input-group select { width: 100%; padding: 14px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
         
-        .total-container { margin: 15px 0; padding: 10px 0; border-top: 2px solid #eee; text-align: right; }
-        .total-text { font-size: 1.4rem; font-weight: bold; color: var(--rojo); }
-        .btn-finalizar { background: var(--rojo); color: white; width: 100%; padding: 15px; border: none; border-radius: 4px; font-weight: bold; text-transform: uppercase; cursor: pointer; }
-        .btn-seguir { background: #e0e0e0; width: 100%; padding: 10px; border: none; margin-top: 10px; border-radius: 4px; cursor: pointer; }
+        .total-container { margin: 10px 0; padding: 10px 0; text-align: right; }
+        .total-text { font-size: 1.5rem; font-weight: bold; color: #fff; }
+        
+        .btn-finalizar { background: var(--verde); color: white; width: 100%; padding: 18px; border: none; border-radius: 8px; font-weight: bold; text-transform: uppercase; cursor: pointer; font-size: 1.1rem; }
+        .btn-cerrar-exp { background: transparent; color: #aaa; width: 100%; padding: 12px; border: 1px solid #444; border-radius: 8px; margin-top: 12px; cursor: pointer; text-transform: uppercase; font-size: 0.8rem; }
 
         .success-card { text-align: center; }
         .success-icon { font-size: 50px; color: var(--verde); margin-bottom: 10px; }
-        .ticket-detail { background: #f9f9f9; padding: 15px; border-radius: 6px; text-align: left; margin: 15px 0; font-family: monospace; border: 1px dashed #ccc; }
-        .btn-whatsapp { background: #25d366; color: white; width: 100%; padding: 15px; border: none; border-radius: 4px; font-weight: bold; text-decoration: none; display: block; margin-top: 10px; text-align: center; }
+        .ticket-detail { background: #f9f9f9; padding: 15px; border-radius: 6px; text-align: left; margin: 15px 0; font-family: monospace; border: 1px dashed #ccc; color: #333; font-size: 0.9rem; }
+        
+        .btn-whatsapp { 
+            background: #25d366; color: white; width: 100%; padding: 18px; 
+            border: none; border-radius: 8px; font-weight: bold; text-decoration: none; 
+            display: flex; align-items: center; justify-content: center; 
+            margin: 20px auto 5px; text-align: center; box-sizing: border-box;
+            font-size: 1.1rem;
+            box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
+        }
+
+        .info-pago-extra {
+            background: #e8f5e9; padding: 15px; border-radius: 8px; 
+            font-size: 0.95rem; margin-bottom: 15px; border: 1px solid #c8e6c9; color: #2e7d32;
+        }
     </style>
 </head>
 <body>
@@ -48,35 +99,37 @@
 
 <div class="container" id="lista-menu"></div>
 
-<div class="floating-cart" id="btn-ver-carrito" onclick="toggleModal('modal-carrito', true)">
-    <span style="font-weight: bold;">Ver pedido (<span id="cart-count">0</span>)</span>
-    <span id="cart-total-footer" style="font-weight: bold; font-size: 1.2rem;">$0</span>
-</div>
-
-<div class="modal" id="modal-carrito">
-    <div class="modal-content">
-        <h3 style="margin-top: 0; text-transform: uppercase;">Tu Pedido 🛒</h3>
+<div class="floating-cart" id="btn-ver-carrito">
+    <div onclick="toggleCartExpand()">
+        <span class="drag-handle"></span>
+        <div class="cart-header-click">
+            <span style="font-weight: bold;" id="label-carrito">Ver pedido (<span id="cart-count">0</span>)</span>
+            <span id="cart-total-footer" style="font-weight: bold; font-size: 1.2rem;">$0</span>
+        </div>
+    </div>
+    
+    <div class="cart-content-area">
         <div id="items-detalle"></div>
-        <div class="total-container"><span class="total-text">TOTAL: <span id="total-modal">$0</span></span></div>
-
-        <div class="input-group">
-            <label style="font-size: 0.85rem; font-weight: bold;">Método de Entrega:</label>
-            <select id="tipo_entrega" onchange="toggleEntrega()">
+        <div class="total-container">
+            <span class="total-text">TOTAL: <span id="total-expandido">$0</span></span>
+        </div>
+        
+        <div class="input-group" style="background: #222; padding: 15px; border-radius: 10px; margin-bottom: 15px;">
+             <select id="tipo_entrega" onchange="toggleEntrega()">
                 <option value="delivery">Delivery</option>
                 <option value="retiro">Retiro en local</option>
             </select>
-            <label style="font-size: 0.85rem; font-weight: bold;">Método de Pago:</label>
             <select id="metodo_pago">
                 <option value="efectivo">Efectivo</option>
                 <option value="transferencia">Transferencia</option>
             </select>
             <input type="text" id="nombre" placeholder="¿A nombre de quién?">
             <input type="text" id="direccion" placeholder="Dirección de entrega">
-            <input type="tel" id="tel" placeholder="Teléfono" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+            <input type="tel" id="tel" placeholder="Teléfono (WhatsApp)">
         </div>
-        
+
         <button class="btn-finalizar" id="btn-procesar" onclick="enviarPedido()">FINALIZAR COMPRA</button>
-        <button class="btn-seguir" onclick="toggleModal('modal-carrito', false)">SEGUIR COMPRANDO</button>
+        <button class="btn-cerrar-exp" onclick="toggleCartExpand()">⇊ Volver al menú</button>
     </div>
 </div>
 
@@ -84,24 +137,56 @@
     <div class="modal-content success-card">
         <div class="success-icon">✔</div>
         <h2 style="color: var(--verde); margin: 0;">¡PEDIDO RECIBIDO!</h2>
-        <p>Tu orden <strong>#<span id="res-pedido-id"></span></strong> ha sido enviada.</p>
+        <p>Orden <strong>#<span id="res-pedido-id"></span></strong> enviada correctamente.</p>
         
         <div class="ticket-detail" id="ticket-final"></div>
 
-        <div id="info-transferencia" style="display:none; background: #fff3cd; padding: 10px; border-radius: 4px; font-size: 0.9rem; margin-bottom: 15px; border: 1px solid #ffeeba;">
-            <strong>ALIAS:</strong> HighBlend.Burgers<br>
-            <strong>CBU:</strong> 00000031000...<br>
-            <em>Enviá el comprobante por WhatsApp.</em>
+        <div id="contenedor-info-extra" class="info-pago-extra" style="display:none;">
+            <div id="info-transferencia" style="display:none;">
+                <strong>DATOS DE TRANSFERENCIA:</strong><br>
+                ALIAS: <strong>HighBlend.Burgers</strong><br>
+                CVU: <strong>00000031000...</strong><br>
+                <p style="margin-top:10px; font-weight:bold; color:var(--rojo)">⚠️ Esperamos tu comprobante por WhatsApp para iniciar el pedido.</p>
+            </div>
+            <div id="info-retiro" style="display:none;">
+                <strong>📍 RETIRO EN LOCAL:</strong><br>
+                ¡Te esperamos en el local para entregarte tu pedido!
+            </div>
         </div>
 
         <a href="#" id="link-wsp" target="_blank" class="btn-whatsapp">CONFIRMAR POR WHATSAPP</a>
-        <button class="btn-seguir" onclick="location.reload()">CERRAR Y VOLVER AL MENÚ</button>
+        
+        <p style="font-size: 0.8rem; color: #999; margin-top: 15px;">
+            Al presionar, se abrirá tu WhatsApp con el detalle.
+        </p>
+    </div>
+</div>
+
+<div class="modal" id="modal-cerrado">
+    <div class="modal-content success-card">
+        <div style="font-size:60px">🛑</div>
+        <h2 style="color: var(--rojo);">LOCAL CERRADO</h2>
+        <p>En este momento no estamos recibiendo pedidos.</p>
+        <button class="btn-add" style="width:100%" onclick="toggleModal('modal-cerrado', false)">ENTENDIDO</button>
     </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
     const socket = io();
+
+    socket.on('nuevo-producto', () => cargar());
+    socket.on('nueva-categoria', () => cargar());
+    socket.on('producto-eliminado', () => cargar());
+    socket.on('categoria-eliminada', () => cargar());
+
+    async function verificarEstadoInicial() {
+        try {
+            const res = await fetch('/estado-local');
+            const data = await res.json();
+            if (!data.abierto) toggleModal('modal-cerrado', true);
+        } catch (e) { console.error(e); }
+    }
 
     socket.on('cambio-stock', (data) => {
         const productoElemento = document.getElementById(`prod-${data.id}`);
@@ -112,9 +197,16 @@
                 if(btn) { btn.disabled = false; btn.innerText = "AGREGAR"; }
             } else {
                 productoElemento.style.display = 'none';
-                const btn = productoElemento.querySelector('.btn-add');
-                if(btn) { btn.disabled = true; btn.innerText = "AGOTADO"; }
             }
+        }
+    });
+
+    socket.on('cambio-estado-local', (abierto) => {
+        if (!abierto) {
+            document.getElementById('btn-ver-carrito').classList.remove('expanded');
+            toggleModal('modal-cerrado', true);
+        } else {
+            toggleModal('modal-cerrado', false);
         }
     });
 
@@ -122,11 +214,9 @@
     const ORDEN_PRIORIDAD = ['PROMOCIONES', 'CLASICAS', 'ESPECIALES', 'PAPAS', 'BEBIDAS', 'CERVEZAS', 'MEDALLONES', 'SALSAS', 'HEINZ', 'TOPPINGS'];
 
     async function cargar() {
+        verificarEstadoInicial();
         try {
-            const [resProd, resCat] = await Promise.all([
-                fetch('/hamburguesas'),
-                fetch('/categorias')
-            ]);
+            const [resProd, resCat] = await Promise.all([fetch('/hamburguesas'), fetch('/categorias')]);
             const productos = await resProd.json();
             const categoriasDB = await resCat.json();
             let categoriasNombres = categoriasDB.map(c => c.nombre);
@@ -142,19 +232,31 @@
                 if(productosDeEstaCat.length > 0) {
                     div.innerHTML += `<div class="cat-header">${nombreCat}</div>`;
                     productosDeEstaCat.forEach(h => {
+                        const displayStyle = h.disponible ? 'flex' : 'none';
                         div.innerHTML += `
-                            <div class="item-card" id="prod-${h.id}">
+                            <div class="item-card" id="prod-${h.id}" style="display: ${displayStyle}">
                                 <div class="item-info">
                                     <strong>${h.nombre}</strong>
                                     <p>${h.descripcion || ''}</p>
                                     <span class="precio">$${Number(h.precio).toLocaleString('es-AR')}</span>
                                 </div>
-                                <button class="btn-add" onclick="agregar(${h.id}, '${h.nombre}', ${h.precio})">AGREGAR</button>
+                                <div class="btn-container" id="cont-${h.id}">
+                                    <button class="btn-add" onclick="agregar(${h.id}, '${h.nombre}', ${h.precio})">AGREGAR</button>
+                                </div>
                             </div>`;
                     });
                 }
             });
-        } catch (e) { console.error("Error al cargar el menú:", e); }
+            actualizarUI();
+        } catch (e) { console.error(e); }
+    }
+
+    function toggleCartExpand() {
+        const cart = document.getElementById('btn-ver-carrito');
+        cart.classList.toggle('expanded');
+        const label = document.getElementById('label-carrito');
+        const count = document.getElementById('cart-count').innerText;
+        label.innerText = cart.classList.contains('expanded') ? "🛒 Tu Pedido" : `Ver pedido (${count})`;
     }
 
     function toggleEntrega() {
@@ -174,37 +276,63 @@
         const bar = document.getElementById('btn-ver-carrito');
         const count = document.getElementById('cart-count');
         const totalFooter = document.getElementById('cart-total-footer');
-        const totalModal = document.getElementById('total-modal');
+        const totalExpandido = document.getElementById('total-expandido');
         const detalle = document.getElementById('items-detalle');
         let total = 0; let unidades = 0;
         detalle.innerHTML = '';
+
+        document.querySelectorAll('.btn-add').forEach(btn => {
+            btn.classList.remove('agregado');
+            btn.innerText = "AGREGAR";
+        });
+        document.querySelectorAll('.badge-count').forEach(badge => badge.remove());
+
         carrito.forEach((p, index) => {
             total += p.precio * p.cantidad; unidades += p.cantidad;
             detalle.innerHTML += `<div class="cart-list-item"><span>${p.cantidad}x ${p.nombre}</span><div style="display:flex; align-items:center;"><strong style="margin-right:10px;">$${(p.precio * p.cantidad).toLocaleString('es-AR')}</strong><button class="btn-remove" onclick="eliminar(${index})">✕</button></div></div>`;
+            
+            const btnCont = document.getElementById(`cont-${p.hamburguesa_id}`);
+            if(btnCont) {
+                const btn = btnCont.querySelector('.btn-add');
+                btn.classList.add('agregado');
+                btn.innerText = "AGREGADO";
+                let badge = btnCont.querySelector('.badge-count') || document.createElement('span');
+                badge.className = 'badge-count';
+                badge.innerText = p.cantidad;
+                btnCont.appendChild(badge);
+            }
         });
+
         bar.style.display = unidades > 0 ? 'flex' : 'none';
         count.innerText = unidades;
         totalFooter.innerText = `$${total.toLocaleString('es-AR')}`;
-        totalModal.innerText = `$${total.toLocaleString('es-AR')}`;
+        totalExpandido.innerText = `$${total.toLocaleString('es-AR')}`;
+        if(unidades === 0) bar.classList.remove('expanded');
     }
 
     function eliminar(index) {
         carrito[index].cantidad > 1 ? carrito[index].cantidad-- : carrito.splice(index, 1);
         actualizarUI();
-        if(carrito.length === 0) toggleModal('modal-carrito', false);
     }
 
     function toggleModal(id, show) { document.getElementById(id).style.display = show ? 'block' : 'none'; }
 
     async function enviarPedido() {
-        const btn = document.getElementById('btn-procesar');
-        const inputNombre = document.getElementById('nombre');
-        const inputDir = document.getElementById('direccion');
-        const inputTel = document.getElementById('tel');
-        const inputPago = document.getElementById('metodo_pago');
+        const resEstado = await fetch('/estado-local');
+        const dataEstado = await resEstado.json();
+        if (!dataEstado.abierto) return toggleModal('modal-cerrado', true);
 
-        if(!inputNombre.value || !inputDir.value || !inputTel.value) return alert("Completa tus datos");
+        const inputs = {
+            nombre: document.getElementById('nombre'),
+            dir: document.getElementById('direccion'),
+            tel: document.getElementById('tel'),
+            pago: document.getElementById('metodo_pago'),
+            entrega: document.getElementById('tipo_entrega')
+        };
+
+        if(!inputs.nombre.value || !inputs.dir.value || !inputs.tel.value) return alert("Completa tus datos");
         
+        const btn = document.getElementById('btn-procesar');
         btn.disabled = true;
         btn.innerText = "PROCESANDO...";
 
@@ -213,48 +341,84 @@
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    cliente: inputNombre.value, 
-                    direccion: inputDir.value, 
-                    telefono: inputTel.value, 
-                    tipo_entrega: document.getElementById('tipo_entrega').value,
-                    metodo_pago: inputPago.value,
+                    cliente: inputs.nombre.value, 
+                    direccion: inputs.dir.value, 
+                    telefono: inputs.tel.value, 
+                    tipo_entrega: inputs.entrega.value,
+                    metodo_pago: inputs.pago.value,
                     items: carrito 
                 })
             });
 
             if(res.ok) {
                 const datos = await res.json();
-                
-                // --- LINEA AGREGADA PARA LA ALERTA ---
                 socket.emit('pedido-realizado', { id: datos.pedidoId });
-                // ------------------------------------
-
-                mostrarExito(datos, inputNombre.value, inputDir.value, inputPago.value);
+                mostrarExito(datos, inputs.nombre.value, inputs.dir.value, inputs.pago.value, inputs.entrega.value);
             } else {
-                alert("Error al procesar el pedido");
+                alert("Error al enviar pedido");
                 btn.disabled = false;
                 btn.innerText = "FINALIZAR COMPRA";
             }
         } catch (error) {
-            console.error(error);
             btn.disabled = false;
             btn.innerText = "FINALIZAR COMPRA";
         }
     }
 
-    function mostrarExito(datos, cliente, direccion, pago) {
-        toggleModal('modal-carrito', false);
+    function mostrarExito(datos, cliente, direccion, pago, entrega) {
+        document.getElementById('btn-ver-carrito').classList.remove('expanded');
         document.getElementById('res-pedido-id').innerText = datos.pedidoId;
+        
         let detalleTexto = ""; let detalleWsp = "";
         carrito.forEach(p => {
             detalleTexto += `${p.cantidad}x ${p.nombre}<br>`;
             detalleWsp += `✅ ${p.cantidad}x ${p.nombre}\n`;
         });
+
         document.getElementById('ticket-final').innerHTML = `<strong>CLIENTE:</strong> ${cliente}<br><strong>TOTAL:</strong> $${datos.total.toLocaleString('es-AR')}<br><br>${detalleTexto}`;
-        if(pago === 'transferencia') document.getElementById('info-transferencia').style.display = 'block';
-        const msg = `*NUEVO PEDIDO #${datos.pedidoId} - HIGH BLEND* 🍔\n\n👤 *Cliente:* ${cliente}\n📍 *Dirección:* ${direccion}\n💳 *Pago:* ${pago.toUpperCase()}\n--------------------------\n${detalleWsp}--------------------------\n💰 *TOTAL: $${datos.total.toLocaleString('es-AR')}*`;
-        document.getElementById('link-wsp').href = `https://wa.me/5491168184740?text=${encodeURIComponent(msg)}`;
+        
+        const contenedorExtra = document.getElementById('contenedor-info-extra');
+        const infoTransf = document.getElementById('info-transferencia');
+        const infoRetiro = document.getElementById('info-retiro');
+
+        contenedorExtra.style.display = 'none';
+        infoTransf.style.display = 'none';
+        infoRetiro.style.display = 'none';
+
+        if(pago === 'transferencia') {
+            contenedorExtra.style.display = 'block';
+            infoTransf.style.display = 'block';
+        } 
+        
+        if(entrega === 'retiro') {
+            contenedorExtra.style.display = 'block';
+            infoRetiro.style.display = 'block';
+        }
+
+        const msg = `*NUEVO PEDIDO #${datos.pedidoId} - HIGH BLEND* 🍔\n\n👤 *Cliente:* ${cliente}\n📍 *Entrega:* ${entrega.toUpperCase()}\n🏠 *Dirección:* ${direccion}\n💳 *Pago:* ${pago.toUpperCase()}\n--------------------------\n${detalleWsp}--------------------------\n💰 *TOTAL: $${datos.total.toLocaleString('es-AR')}*`;
+        
+        const btnWsp = document.getElementById('link-wsp');
+        btnWsp.href = `https://wa.me/5491168184740?text=${encodeURIComponent(msg)}`;
+        
+        // MODIFICACIÓN: Al confirmar por WSP, cerramos modal, limpiamos carrito Y limpiamos inputs
+        btnWsp.onclick = function() {
+            toggleModal('modal-exito', false);
+            // Limpiar inputs del formulario
+            document.getElementById('nombre').value = '';
+            document.getElementById('direccion').value = '';
+            document.getElementById('tel').value = '';
+        };
+        
         toggleModal('modal-exito', true);
+        
+        // Limpiamos el carrito lógico y visual
+        carrito = [];
+        actualizarUI();
+
+        // Reseteamos el botón principal
+        const btnProcesar = document.getElementById('btn-procesar');
+        btnProcesar.disabled = false;
+        btnProcesar.innerText = "FINALIZAR COMPRA";
     }
 
     cargar();

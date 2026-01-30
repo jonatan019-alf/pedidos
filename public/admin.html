@@ -4,11 +4,13 @@
     <meta charset="UTF-8">
     <title>High Blend - Panel de Control</title>
     <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    
     <style>
-        :root { --rojo: #d32f2f; --negro: #1a1a1a; --gris-oscuro: #2d2d2d; --verde: #2e7d32; --azul: #1976d2; }
+        :root { --rojo: #d32f2f; --negro: #1a1a1a; --gris-oscuro: #2d2d2d; --verde: #2e7d32; --azul: #1976d2; --naranja: #e67e22; }
         body { font-family: 'Arial', sans-serif; background: var(--negro); color: white; margin: 0; padding: 0; }
         
-        /* ESTILO DEL MENSAJE FLOTANTE (TOAST) */
         #toast { 
             position: fixed; 
             top: 20px; 
@@ -16,7 +18,7 @@
             padding: 15px 25px; 
             border-radius: 4px; 
             color: white; 
-            background-color: var(--verde); /* CAMBIADO A VERDE */
+            background-color: var(--verde); 
             font-weight: bold; 
             z-index: 5000; 
             display: none; 
@@ -24,7 +26,6 @@
             animation: slideIn 0.5s; 
         }
 
-        /* ANIMACIÓN DE PARPADEO PARA CARD NUEVA */
         @keyframes parpadeo-alerta {
             0% { border: 4px solid var(--rojo); box-shadow: 0 0 10px var(--rojo); }
             50% { border: 4px solid #ffeb3b; box-shadow: 0 0 30px #ffeb3b; }
@@ -52,8 +53,8 @@
         .stat-item span { display: block; font-size: 0.7rem; color: #aaa; text-transform: uppercase; }
         .stat-item strong { font-size: 1.2rem; color: var(--rojo); }
 
-        .nav-tabs { margin-bottom: 20px; display: flex; gap: 10px; }
-        .nav-tabs button { padding: 12px 25px; cursor: pointer; background: var(--gris-oscuro); color: white; border: none; border-radius: 4px; font-weight: bold; transition: 0.3s; }
+        .nav-tabs { margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .nav-tabs button { padding: 12px 20px; cursor: pointer; background: var(--gris-oscuro); color: white; border: none; border-radius: 4px; font-weight: bold; transition: 0.3s; }
         .nav-tabs button.active { background: var(--rojo); }
 
         .grid-pedidos { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; width: 100%; }
@@ -67,11 +68,14 @@
         
         .btn { border: none; padding: 12px; border-radius: 4px; cursor: pointer; font-weight: bold; flex: 1; text-transform: uppercase; font-size: 0.75rem; }
         .btn-ready { background: var(--verde); color: white; }
-        .btn-cancel { background: #777; color: white; }
+        .btn-cancel { background: #bbb; color: white; }
+        .btn-cancel:hover { background: var(--rojo); }
         
         .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; color: white; }
-        .badge-pendiente { background: #e67e22; }
+        .badge-pendiente { background: var(--naranja); }
         .badge-esperando { background: #f1c40f; color: #000; } 
+        .badge-cancelado { background: #777; }
+        .badge-enviado { background: var(--verde); }
         .status-esperando { border: 4px solid #f1c40f !important; }
 
         .menu-container { background: white; color: #333; padding: 25px; border-radius: 8px; }
@@ -86,11 +90,25 @@
 
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 4000; }
         .modal-content { background: white; color: #333; width: 90%; max-width: 400px; margin: 50px auto; padding: 25px; border-radius: 8px; box-sizing: border-box; }
+
+        .panel-filtros-box { background: #f4f4f4; padding: 15px; border-radius: 6px; margin-bottom: 20px; display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; border: 1px solid #ddd; align-items: end; }
+        .panel-filtros-box label { display: block; font-size: 0.75rem; color: #666; margin-bottom: 4px; font-weight: bold; }
+        .panel-filtros-box input, .panel-filtros-box select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box; }
     </style>
 </head>
 <body>
 
 <div id="toast"></div>
+
+<div id="modal-anular" class="modal">
+    <div class="modal-content" style="text-align: center;">
+        <h3 style="margin-top:0; color: var(--rojo);">⚠️ ¿Anular Pedido?</h3>
+        <p>Esta acción marcará el pedido como CANCELADO y no se sumará a las ventas.</p>
+        <input type="hidden" id="anular-id">
+        <button onclick="confirmarAnulacion()" style="background:var(--rojo); color:white; border:none; padding:12px; width:100%; border-radius:4px; font-weight:bold; cursor:pointer;">SÍ, ANULAR PEDIDO</button>
+        <button style="background:#ccc; border:none; width:100%; padding:10px; margin-top:10px; cursor:pointer; border-radius:4px;" onclick="cerrarModalAnular()">CANCELAR</button>
+    </div>
+</div>
 
 <div id="modal-editar" class="modal">
     <div class="modal-content">
@@ -117,6 +135,14 @@
 
 <div id="admin-panel">
     <header>
+        <div style="background: var(--gris-oscuro); padding: 10px; border-radius: 8px; display: flex; align-items: center; gap: 10px;">
+            <span>ESTADO DEL LOCAL:</span>
+            <label class="switch">
+                <input type="checkbox" id="switch-local" checked onchange="toggleLocal(this.checked)">
+                <span class="slider"></span>
+            </label>
+            <strong id="texto-local" style="color: var(--verde);">ABIERTO</strong>
+        </div>
         <div>
             <h2 style="margin:0">CONTROL DE COCINA 👨‍🍳</h2>
             <input type="date" id="filtro-fecha" onchange="cargarPedidos()" style="padding: 8px; margin-top: 10px; border-radius: 4px;">
@@ -124,19 +150,25 @@
         <div style="display: flex; align-items: center; gap: 15px;">
             <div class="stats">
                 <div class="stat-item"><span>Venta del Día</span><strong id="stat-ventas">$0</strong></div>
-                <div class="stat-item"><span>Pedidos</span><strong id="stat-cantidad">0</strong></div>
+                <div class="stat-item"><span>Total Pedidos</span><strong id="stat-cantidad">0</strong></div>
             </div>
             <button onclick="logout()" style="background: none; border: 1px solid white; color: white; padding: 8px 15px; cursor: pointer; border-radius: 4px;">Salir</button>
         </div>
     </header>
 
     <div class="nav-tabs">
-        <button id="btn-tab-pedidos" class="active" onclick="switchTab('pedidos')">📦 PEDIDOS</button>
+        <button id="btn-tab-pedidos" class="active" onclick="switchTab('pedidos')">📦 NUEVOS PEDIDOS</button>
+        <button id="btn-tab-despachados" onclick="switchTab('despachados')" style="background: var(--verde);">✅ DESPACHADOS</button>
         <button id="btn-tab-menu" onclick="switchTab('menu')">🍔 GESTIONAR MENÚ</button>
+        <button id="btn-tab-consultas" style="background: var(--azul);" onclick="switchTab('consultas')">🔍 CONSULTAS</button>
     </div>
 
     <div id="tab-pedidos">
         <div class="grid-pedidos" id="contenedor-pedidos"></div>
+    </div>
+
+    <div id="tab-despachados" style="display: none;">
+        <div class="grid-pedidos" id="contenedor-despachados"></div>
     </div>
 
     <div id="tab-menu" style="display: none;">
@@ -166,19 +198,57 @@
             </table>
         </div>
     </div>
+
+    <div id="tab-consultas" style="display: none;">
+        <div class="menu-container">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin:0">🔍 Rango de Consultas</h3>
+                <div style="background: var(--negro); padding: 10px 20px; border-radius: 6px; border: 1px solid var(--azul); display: flex; align-items: center;">
+                    <span style="font-size: 0.8rem; color: #aaa;">TOTAL EN RANGO:</span>
+                    <strong id="total-consulta-suma" style="color: var(--azul); font-size: 1.3rem; margin-left: 10px;">$0</strong>
+                    <button onclick="descargarPDFConsulta()" style="margin-left:15px; background:var(--verde); color:white; border:none; padding:5px 10px; cursor:pointer; border-radius:4px; font-size:0.8rem; font-weight: bold;">PDF 📥</button>
+                </div>
+            </div>
+            <div class="panel-filtros-box">
+                <div>
+                    <label>Desde:</label>
+                    <input type="date" id="filtro-consulta-inicio">
+                </div>
+                <div>
+                    <label>Hasta:</label>
+                    <input type="date" id="filtro-consulta-fin">
+                </div>
+                <div>
+                    <label>Método Pago:</label>
+                    <select id="filtro-consulta-pago">
+                        <option value="">Todos</option>
+                        <option value="efectivo">Efectivo</option>
+                        <option value="transferencia">Transferencia</option>
+                    </select>
+                </div>
+                <button onclick="realizarConsultaRango()" style="background:var(--azul); color:white; border:none; padding:10px; border-radius:4px; font-weight:bold; cursor:pointer; height: 38px;">BUSCAR</button>
+            </div>
+            <div class="grid-pedidos" id="contenedor-consultas"></div>
+        </div>
+    </div>
 </div>
 
 <script>
     const socket = io();
     let productosCache = [];
-    let pedidosNuevos = new Set(); 
+    let pedidosCacheConsulta = [];
+    let pedidosNuevos = new Set(JSON.parse(localStorage.getItem('pedidosNuevos')) || []);
 
-    // ESCUCHAR NUEVOS PEDIDOS
+    function guardarAlertaPersistent() {
+        localStorage.setItem('pedidosNuevos', JSON.stringify(Array.from(pedidosNuevos)));
+        document.title = pedidosNuevos.size > 0 ? "⚠️ NUEVO PEDIDO ⚠️" : "High Blend - Panel de Control";
+    }
+
     socket.on('pedido-realizado', (data) => {
         const id = data.id || data.pedidoId;
         if(id) {
             pedidosNuevos.add(Number(id));
-            document.title = "⚠️ NUEVO PEDIDO ⚠️";
+            guardarAlertaPersistent();
             cargarPedidos(); 
         }
     });
@@ -187,20 +257,21 @@
         const idNum = Number(id);
         if(pedidosNuevos.has(idNum)) {
             pedidosNuevos.delete(idNum);
-            if(pedidosNuevos.size === 0) {
-                document.title = "High Blend - Panel de Control";
-            }
+            guardarAlertaPersistent();
             cargarPedidos(); 
         }
     }
 
-    // --- NAVEGACIÓN ---
     function switchTab(tab) {
-        document.getElementById('tab-pedidos').style.display = tab === 'pedidos' ? 'block' : 'none';
-        document.getElementById('tab-menu').style.display = tab === 'pedidos' ? 'none' : 'block';
-        document.getElementById('btn-tab-pedidos').className = tab === 'pedidos' ? 'active' : '';
-        document.getElementById('btn-tab-menu').className = tab === 'menu' ? 'active' : '';
-        if(tab === 'menu') { cargarCategorias(); listarProductos(); } else { cargarPedidos(); }
+        const tabs = ['pedidos', 'despachados', 'menu', 'consultas'];
+        tabs.forEach(t => {
+            document.getElementById(`tab-${t}`).style.display = tab === t ? 'block' : 'none';
+            const btn = document.getElementById(`btn-tab-${t}`);
+            if (btn) btn.classList.toggle('active', tab === t);
+        });
+
+        if(tab === 'menu') { cargarCategorias(); listarProductos(); } 
+        else if (tab === 'pedidos' || tab === 'despachados') { cargarPedidos(); }
     }
 
     async function intentarLogin() {
@@ -210,12 +281,12 @@
         if (res.ok) {
             document.getElementById('login-screen').style.display = 'none';
             document.getElementById('admin-panel').style.display = 'block';
+            checkEstadoLocal();
             cargarPedidos();
             setInterval(cargarPedidos, 45000);
         } else { document.getElementById('error-msg').style.display = 'block'; }
     }
 
-    // --- PRODUCTOS ---
     async function listarProductos() {
         const res = await fetch('/hamburguesas-admin');
         productosCache = await res.json();
@@ -238,73 +309,142 @@
         tabla.innerHTML = html;
     }
 
-    async function guardarProducto() {
-        const nombre = document.getElementById('p-nombre').value;
-        const descripcion = document.getElementById('p-desc').value;
-        const precio = document.getElementById('p-precio').value;
-        const categoria = document.getElementById('p-categoria-select').value;
-        
-        const res = await fetch('/productos', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ nombre, descripcion, precio, categoria })
-        });
-        if(res.ok) {
-            mostrarNotificacion("✅ Producto Guardado");
-            listarProductos();
-            document.getElementById('p-nombre').value = "";
-            document.getElementById('p-desc').value = "";
-            document.getElementById('p-precio').value = "";
-        }
-    }
-
-    function filtrarProductos() {
-        const term = document.getElementById('buscador-prod').value.toLowerCase();
-        renderizarTabla(productosCache.filter(p => p.nombre.toLowerCase().includes(term) || p.categoria.toLowerCase().includes(term)));
-    }
-
-    async function toggleDisponible(id, estado) {
-        await fetch(`/productos/${id}/disponible`, { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ disponible: estado }) });
-        mostrarNotificacion(estado ? "✅ Activado" : "❌ Agotado");
-    }
-
-    // --- PEDIDOS ---
     async function cargarPedidos() {
         const fecha = document.getElementById('filtro-fecha').value || new Date().toISOString().split('T')[0];
         const res = await fetch(`/pedidos/admin/lista?fecha=${fecha}`);
         const pedidos = await res.json();
-        const contenedor = document.getElementById('contenedor-pedidos');
+
+        const contenedorNuevos = document.getElementById('contenedor-pedidos');
+        const contenedorDespachados = document.getElementById('contenedor-despachados');
+        
         let totalVentas = 0;
-        let htmlPedidos = "";
+        let htmlNuevos = "";
+        let htmlDespachados = "";
 
         pedidos.forEach(p => {
             if(p.estado !== 'cancelado') totalVentas += parseFloat(p.total);
-            const esNuevo = pedidosNuevos.has(Number(p.id)) ? 'card-nueva' : '';
             
-            htmlPedidos += `
-                <div class="card ${esNuevo} ${p.estado === 'esperando_pago' ? 'status-esperando' : ''}" onclick="detenerAlerta(${p.id})">
-                    <div class="card-header"><span>#${p.id}</span><span class="badge ${p.estado === 'pendiente' ? 'badge-pendiente' : 'badge-esperando'}">${p.estado.toUpperCase()}</span></div>
-                    <div class="card-body">
-                        ${p.items.map(i => `<div class="item-line"><span>${i.cantidad}x ${i.nombre}</span></div>`).join('')}
-                        <div class="cliente-info"><strong>👤 ${p.cliente}</strong><br>📍 ${p.direccion}<br>💳 ${p.metodo_pago}<h3>$${Number(p.total).toLocaleString()}</h3></div>
-                    </div>
-                    <div class="card-footer">
-                        ${p.estado === 'pendiente' ? `<button class="btn btn-ready" onclick="event.stopPropagation(); cambiarEstado(${p.id}, 'enviado')">DESPACHAR</button>` : ''}
-                    </div>
-                </div>`;
+            const esNuevo = pedidosNuevos.has(Number(p.id)) ? 'card-nueva' : '';
+            const cardHtml = generarCardPedido(p, esNuevo);
+
+            if (p.estado === 'enviado') {
+                htmlDespachados += cardHtml;
+            } else if (p.estado !== 'cancelado') {
+                htmlNuevos += cardHtml;
+            }
         });
-        contenedor.innerHTML = htmlPedidos;
+        
+        contenedorNuevos.innerHTML = htmlNuevos || "<p style='color:#777; padding:20px;'>No hay pedidos pendientes.</p>";
+        contenedorDespachados.innerHTML = htmlDespachados || "<p style='color:#777; padding:20px;'>No hay pedidos despachados hoy.</p>";
+        
         document.getElementById('stat-ventas').innerText = `$${totalVentas.toLocaleString()}`;
         document.getElementById('stat-cantidad').innerText = pedidos.length;
+        document.title = pedidosNuevos.size > 0 ? "⚠️ NUEVO PEDIDO ⚠️" : "High Blend - Panel de Control";
+    }
+
+    function generarCardPedido(p, esNuevo) {
+        const statusBadge = {
+            'pendiente': 'badge-pendiente',
+            'esperando_pago': 'badge-esperando',
+            'enviado': 'badge-enviado',
+            'cancelado': 'badge-cancelado'
+        }[p.estado] || '';
+        
+        return `
+            <div class="card ${esNuevo} ${p.estado === 'esperando_pago' ? 'status-esperando' : ''}" onclick="detenerAlerta(${p.id})">
+                <div class="card-header"><span>#${p.id}</span><span class="badge ${statusBadge}">${p.estado.toUpperCase()}</span></div>
+                <div class="card-body">
+                    ${p.items.map(i => `<div class="item-line"><span>${i.cantidad}x ${i.nombre}</span></div>`).join('')}
+                    <div class="cliente-info"><strong>👤 ${p.cliente}</strong><br>📍 ${p.direccion}<br>💳 ${p.metodo_pago}<h3>$${Number(p.total).toLocaleString()}</h3></div>
+                </div>
+                <div class="card-footer">
+                    ${p.estado === 'pendiente' || p.estado === 'esperando_pago' ? `<button class="btn btn-ready" onclick="event.stopPropagation(); cambiarEstado(${p.id}, 'enviado')">DESPACHAR</button>` : ''}
+                    ${p.estado !== 'cancelado' ? `<button class="btn btn-cancel" onclick="event.stopPropagation(); abrirModalAnular(${p.id})">ANULAR</button>` : ''}
+                </div>
+            </div>`;
     }
 
     async function cambiarEstado(id, nuevo) {
-        await fetch(`/pedidos/${id}/estado`, { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({estado: nuevo}) });
-        pedidosNuevos.delete(Number(id)); 
-        cargarPedidos();
+        const res = await fetch(`/pedidos/${id}/estado`, { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({estado: nuevo}) });
+        if(res.ok) {
+            detenerAlerta(id);
+            mostrarNotificacion(nuevo === 'enviado' ? "🚀 Pedido Despachado" : "Actualizado");
+            cargarPedidos();
+        }
     }
 
-    // --- CATEGORIAS Y OTROS ---
+    async function realizarConsultaRango() {
+        const inicio = document.getElementById('filtro-consulta-inicio').value;
+        const fin = document.getElementById('filtro-consulta-fin').value;
+        const pago = document.getElementById('filtro-consulta-pago').value;
+
+        if(!inicio || !fin) return mostrarNotificacion("⚠️ Selecciona ambas fechas");
+
+        let fechaActual = new Date(inicio + "T00:00:00");
+        let fechaFin = new Date(fin + "T00:00:00");
+        let todosLosPedidos = [];
+
+        while(fechaActual <= fechaFin) {
+            const fString = fechaActual.toISOString().split('T')[0];
+            try {
+                const res = await fetch(`/pedidos/admin/lista?fecha=${fString}`);
+                const pedidosDia = await res.json();
+                todosLosPedidos = todosLosPedidos.concat(pedidosDia);
+            } catch(e) { console.error("Error cargando día", fString); }
+            fechaActual.setDate(fechaActual.getDate() + 1);
+        }
+
+        if(pago) todosLosPedidos = todosLosPedidos.filter(p => p.metodo_pago === pago);
+        pedidosCacheConsulta = todosLosPedidos;
+
+        let totalSuma = 0;
+        let html = "";
+        todosLosPedidos.forEach(p => {
+            if(p.estado !== 'cancelado') totalSuma += parseFloat(p.total);
+            html += generarCardPedido(p, "");
+        });
+
+        document.getElementById('contenedor-consultas').innerHTML = html || "<p style='color:#333; padding:20px;'>Sin resultados en este rango.</p>";
+        document.getElementById('total-consulta-suma').innerText = `$${totalSuma.toLocaleString()}`;
+    }
+
+    async function descargarPDFConsulta() {
+        if (!pedidosCacheConsulta || pedidosCacheConsulta.length === 0) return mostrarNotificacion("⚠️ Realiza una búsqueda primero");
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const inicio = document.getElementById('filtro-consulta-inicio').value;
+        const fin = document.getElementById('filtro-consulta-fin').value;
+        doc.setFontSize(20);
+        doc.setTextColor(211, 47, 47);
+        doc.text("REPORTES HIGH BLEND", 105, 20, { align: 'center' });
+        doc.setFontSize(12);
+        doc.setTextColor(40);
+        doc.text(`Periodo: ${inicio} al ${fin}`, 14, 30);
+        doc.text(`Total: ${document.getElementById('total-consulta-suma').innerText}`, 14, 37);
+        const rows = pedidosCacheConsulta.map(p => [p.id, p.cliente, p.metodo_pago.toUpperCase(), p.estado.toUpperCase(), `$${Number(p.total).toLocaleString()}`]);
+        doc.autoTable({ startY: 50, head: [['ID', 'Cliente', 'Pago', 'Estado', 'Monto']], body: rows, headStyles: { fillColor: [211, 47, 47] } });
+        doc.save(`Reporte_Ventas_${inicio}_${fin}.pdf`);
+    }
+
+    function abrirModalAnular(id) {
+        document.getElementById('anular-id').value = id;
+        document.getElementById('modal-anular').style.display = 'block';
+    }
+
+    function cerrarModalAnular() {
+        document.getElementById('modal-anular').style.display = 'none';
+    }
+
+    async function confirmarAnulacion() {
+        const id = document.getElementById('anular-id').value;
+        const res = await fetch(`/pedidos/${id}/estado`, { method: 'PATCH', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({estado: 'cancelado'}) });
+        if(res.ok) {
+            cerrarModalAnular();
+            mostrarNotificacion("🚫 Pedido Anulado");
+            cargarPedidos();
+        }
+    }
+
     async function cargarCategorias() {
         const res = await fetch('/categorias');
         const cats = await res.json();
@@ -318,6 +458,31 @@
         document.getElementById('edit-categoria-select').innerHTML = opts;
     }
 
+    async function toggleLocal(abierto) {
+        const res = await fetch('/admin/estado-local', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ abierto }) });
+        if (res.ok) {
+            const texto = document.getElementById('texto-local');
+            texto.innerText = abierto ? "ABIERTO" : "CERRADO";
+            texto.style.color = abierto ? "var(--verde)" : "var(--rojo)";
+            mostrarNotificacion(abierto ? "Local Abierto" : "Local Cerrado");
+        }
+    }
+
+    async function checkEstadoLocal() {
+        const res = await fetch('/estado-local');
+        const data = await res.json();
+        document.getElementById('switch-local').checked = data.abierto;
+        document.getElementById('texto-local').innerText = data.abierto ? "ABIERTO" : "CERRADO";
+        document.getElementById('texto-local').style.color = data.abierto ? "var(--verde)" : "var(--rojo)";
+    }
+
+    function mostrarNotificacion(m) { 
+        const t = document.getElementById('toast'); 
+        t.innerText = m; 
+        t.style.display = 'block'; 
+        setTimeout(() => t.style.display='none', 3000); 
+    }
+
     function abrirEditor(p) {
         document.getElementById('edit-id').value = p.id;
         document.getElementById('edit-nombre').value = p.nombre;
@@ -326,35 +491,24 @@
         document.getElementById('edit-categoria-select').value = p.categoria;
         document.getElementById('modal-editar').style.display = 'block';
     }
-    
+
     async function actualizarProducto() {
         const id = document.getElementById('edit-id').value;
         const nombre = document.getElementById('edit-nombre').value;
         const precio = document.getElementById('edit-precio').value;
         const descripcion = document.getElementById('edit-desc').value;
         const categoria = document.getElementById('edit-categoria-select').value;
-        
-        const res = await fetch(`/productos/${id}`, {
-            method: 'PUT',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ nombre, descripcion, precio, categoria })
-        });
-        if(res.ok) {
-            cerrarModal();
-            listarProductos();
-            mostrarNotificacion("✅ Actualizado Correctamente");
-        }
+        const res = await fetch(`/productos/${id}`, { method: 'PUT', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ nombre, descripcion, precio, categoria }) });
+        if(res.ok) { cerrarModal(); listarProductos(); mostrarNotificacion("✅ Actualizado"); }
     }
 
     function cerrarModal() { document.getElementById('modal-editar').style.display = 'none'; }
-    function mostrarNotificacion(m) { 
-        const t = document.getElementById('toast'); 
-        t.innerText = m; 
-        t.style.display = 'block'; 
-        setTimeout(() => t.style.display='none', 3000); 
-    }
     async function logout() { await fetch('/logout', {method:'POST'}); location.reload(); }
-    document.getElementById('filtro-fecha').value = new Date().toISOString().split('T')[0];
+
+    const hoy = new Date().toISOString().split('T')[0];
+    document.getElementById('filtro-fecha').value = hoy;
+    document.getElementById('filtro-consulta-inicio').value = hoy;
+    document.getElementById('filtro-consulta-fin').value = hoy;
 </script>
 </body>
 </html>
