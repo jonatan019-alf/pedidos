@@ -159,6 +159,11 @@
     socket.on('categoria-eliminada', () => cargar());
     socket.on('cambio-estado-local', (abierto) => abierto ? toggleModal('modal-cerrado', false) : toggleModal('modal-cerrado', true));
 
+    // AQUÍ AGREGAS EL NUEVO:
+    socket.on('cambio-stock', (data) => {
+        const productoCard = document.getElementById(`prod-${data.id}`);
+        if (productoCard) productoCard.style.display = data.disponible ? 'flex' : 'none';
+    });
     async function verificarEstadoInicial() {
         try {
             const res = await fetch('/estado-local');
