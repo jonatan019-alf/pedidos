@@ -12,20 +12,20 @@
         
         .container { max-width: 600px; margin: 0 auto; padding: 15px; padding-bottom: 130px; }
         .cat-header { background: #e67e22; color: white; padding: 10px; border-radius: 4px; margin: 20px 0 10px; font-weight: bold; text-transform: uppercase; }
-        .item-card { background: white; padding: 15px; margin-bottom: 2px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--rojo); border-bottom: 1px solid #eee; transition: opacity 0.3s ease; }
+        .item-card { background: white; padding: 15px; margin-bottom: 2px; display: flex; justify-content: space-between; align-items: center; border-left: 4px solid var(--rojo); border-bottom: 1px solid #eee; }
         .item-info strong { font-size: 1.1rem; text-transform: uppercase; display: block; }
         .item-info p { color: #666; font-size: 0.9rem; margin: 4px 0; }
         .precio { color: var(--negro); font-weight: bold; font-size: 1.1rem; display: block; margin-top: 5px; }
         
-        .btn-container { display: flex; flex-direction: row-reverse; align-items: center; gap: 8px; }
-        .btn-add { background: var(--rojo); color: white; border: none; padding: 10px 15px; border-radius: 6px; font-weight: bold; text-transform: uppercase; cursor: pointer; transition: background 0.3s; }
-        .btn-add.agregado { background: var(--verde); }
-        .btn-add:disabled { background: #ccc; cursor: not-allowed; }
+        /* Contenedor de botones ajustado */
+        .btn-container { display: flex; align-items: center; gap: 0; background: #eee; border-radius: 8px; overflow: hidden; height: 40px; }
+        .btn-add-initial { background: var(--rojo); color: white; border: none; padding: 0 15px; height: 40px; border-radius: 8px; font-weight: bold; text-transform: uppercase; cursor: pointer; font-size: 0.8rem; }
         
-        .badge-count { 
-            background: var(--negro); color: white; width: 26px; height: 26px; border-radius: 50%; 
-            font-size: 0.85rem; font-weight: bold; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-        }
+        /* Controles de cantidad */
+        .qty-controls { display: none; align-items: center; background: #eee; height: 40px; }
+        .btn-qty { background: var(--negro); color: white; border: none; width: 35px; height: 40px; font-size: 1.2rem; font-weight: bold; cursor: pointer; }
+        .btn-qty:active { opacity: 0.7; }
+        .qty-num { width: 35px; text-align: center; font-weight: bold; color: var(--negro); font-size: 1rem; }
 
         .floating-cart { 
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
@@ -40,21 +40,9 @@
             max-height: 85vh; bottom: 0; width: 100%; max-width: 100%; border-radius: 25px 25px 0 0;
         }
 
-        .drag-handle {
-            width: 40px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px;
-            margin: 8px auto 2px; display: block;
-        }
-
-        .cart-header-click {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 5px 25px 15px; cursor: pointer; width: 100%; box-sizing: border-box;
-        }
-
-        .cart-content-area {
-            padding: 0 20px 25px; overflow-y: auto; display: none; flex-direction: column;
-            background: var(--negro); height: 100%;
-        }
-
+        .drag-handle { width: 40px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; margin: 8px auto 2px; display: block; }
+        .cart-header-click { display: flex; justify-content: space-between; align-items: center; padding: 5px 25px 15px; cursor: pointer; width: 100%; box-sizing: border-box; }
+        .cart-content-area { padding: 0 20px 25px; overflow-y: auto; display: none; flex-direction: column; background: var(--negro); height: 100%; }
         .floating-cart.expanded .cart-content-area { display: flex; }
 
         #items-detalle { max-height: 200px; overflow-y: auto; margin-bottom: 10px; border-bottom: 1px solid #333; }
@@ -65,7 +53,6 @@
         .modal-content { background: white; margin: 10% auto; width: 92%; max-width: 450px; padding: 25px; border-radius: 12px; position: relative; color: #1a1a1a; box-sizing: border-box; }
         
         .input-group input, .input-group select { width: 100%; padding: 14px; margin-bottom: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; }
-        
         .total-container { margin: 10px 0; padding: 10px 0; text-align: right; }
         .total-text { font-size: 1.5rem; font-weight: bold; color: #fff; }
         
@@ -81,14 +68,10 @@
             border: none; border-radius: 8px; font-weight: bold; text-decoration: none; 
             display: flex; align-items: center; justify-content: center; 
             margin: 20px auto 5px; text-align: center; box-sizing: border-box;
-            font-size: 1.1rem;
-            box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
+            font-size: 1.1rem; box-shadow: 0 4px 15px rgba(37, 211, 102, 0.3);
         }
 
-        .info-pago-extra {
-            background: #e8f5e9; padding: 15px; border-radius: 8px; 
-            font-size: 0.95rem; margin-bottom: 15px; border: 1px solid #c8e6c9; color: #2e7d32;
-        }
+        .info-pago-extra { background: #e8f5e9; padding: 15px; border-radius: 8px; font-size: 0.95rem; margin-bottom: 15px; border: 1px solid #c8e6c9; color: #2e7d32; }
     </style>
 </head>
 <body>
@@ -138,9 +121,7 @@
         <div class="success-icon">✔</div>
         <h2 style="color: var(--verde); margin: 0;">¡PEDIDO RECIBIDO!</h2>
         <p>Orden <strong>#<span id="res-pedido-id"></span></strong> enviada correctamente.</p>
-        
         <div class="ticket-detail" id="ticket-final"></div>
-
         <div id="contenedor-info-extra" class="info-pago-extra" style="display:none;">
             <div id="info-transferencia" style="display:none;">
                 <strong>DATOS DE TRANSFERENCIA:</strong><br>
@@ -153,12 +134,7 @@
                 ¡Te esperamos en el local para entregarte tu pedido!
             </div>
         </div>
-
         <a href="#" id="link-wsp" target="_blank" class="btn-whatsapp">CONFIRMAR POR WHATSAPP</a>
-        
-        <p style="font-size: 0.8rem; color: #999; margin-top: 15px;">
-            Al presionar, se abrirá tu WhatsApp con el detalle.
-        </p>
     </div>
 </div>
 
@@ -167,18 +143,21 @@
         <div style="font-size:60px">🛑</div>
         <h2 style="color: var(--rojo);">LOCAL CERRADO</h2>
         <p>En este momento no estamos recibiendo pedidos.</p>
-        <button class="btn-add" style="width:100%" onclick="toggleModal('modal-cerrado', false)">ENTENDIDO</button>
+        <button class="btn-add-initial" style="width:100%" onclick="toggleModal('modal-cerrado', false)">ENTENDIDO</button>
     </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
     const socket = io();
+    let carrito = [];
+    const ORDEN_PRIORIDAD = ['PROMOCIONES', 'CLASICAS', 'ESPECIALES', 'PAPAS', 'BEBIDAS', 'CERVEZAS', 'MEDALLONES', 'SALSAS', 'HEINZ', 'TOPPINGS'];
 
     socket.on('nuevo-producto', () => cargar());
     socket.on('nueva-categoria', () => cargar());
     socket.on('producto-eliminado', () => cargar());
     socket.on('categoria-eliminada', () => cargar());
+    socket.on('cambio-estado-local', (abierto) => abierto ? toggleModal('modal-cerrado', false) : toggleModal('modal-cerrado', true));
 
     async function verificarEstadoInicial() {
         try {
@@ -188,41 +167,15 @@
         } catch (e) { console.error(e); }
     }
 
-    socket.on('cambio-stock', (data) => {
-        const productoElemento = document.getElementById(`prod-${data.id}`);
-        if (productoElemento) {
-            if (data.disponible) {
-                productoElemento.style.display = 'flex';
-                const btn = productoElemento.querySelector('.btn-add');
-                if(btn) { btn.disabled = false; btn.innerText = "AGREGAR"; }
-            } else {
-                productoElemento.style.display = 'none';
-            }
-        }
-    });
-
-    socket.on('cambio-estado-local', (abierto) => {
-        if (!abierto) {
-            document.getElementById('btn-ver-carrito').classList.remove('expanded');
-            toggleModal('modal-cerrado', true);
-        } else {
-            toggleModal('modal-cerrado', false);
-        }
-    });
-
-    let carrito = [];
-    const ORDEN_PRIORIDAD = ['PROMOCIONES', 'CLASICAS', 'ESPECIALES', 'PAPAS', 'BEBIDAS', 'CERVEZAS', 'MEDALLONES', 'SALSAS', 'HEINZ', 'TOPPINGS'];
-
     async function cargar() {
         verificarEstadoInicial();
         try {
             const [resProd, resCat] = await Promise.all([fetch('/hamburguesas'), fetch('/categorias')]);
             const productos = await resProd.json();
             const categoriasDB = await resCat.json();
+            
             let categoriasNombres = categoriasDB.map(c => c.nombre);
-            let listaOrdenada = ORDEN_PRIORIDAD.filter(cat => categoriasNombres.includes(cat));
-            let extras = categoriasNombres.filter(cat => !ORDEN_PRIORIDAD.includes(cat));
-            const ordenFinal = [...listaOrdenada, ...extras];
+            let ordenFinal = [...ORDEN_PRIORIDAD.filter(cat => categoriasNombres.includes(cat)), ...categoriasNombres.filter(cat => !ORDEN_PRIORIDAD.includes(cat))];
 
             const div = document.getElementById('lista-menu');
             div.innerHTML = '';
@@ -241,7 +194,12 @@
                                     <span class="precio">$${Number(h.precio).toLocaleString('es-AR')}</span>
                                 </div>
                                 <div class="btn-container" id="cont-${h.id}">
-                                    <button class="btn-add" onclick="agregar(${h.id}, '${h.nombre}', ${h.precio})">AGREGAR</button>
+                                    <button class="btn-add-initial" id="btn-init-${h.id}" onclick="agregar(${h.id}, '${h.nombre}', ${h.precio})">AGREGAR</button>
+                                    <div class="qty-controls" id="qty-ctrl-${h.id}">
+                                        <button class="btn-qty" onclick="restar(${h.id})">−</button>
+                                        <span class="qty-num" id="qty-val-${h.id}">0</span>
+                                        <button class="btn-qty" onclick="agregar(${h.id}, '${h.nombre}', ${h.precio})">+</button>
+                                    </div>
                                 </div>
                             </div>`;
                     });
@@ -251,24 +209,30 @@
         } catch (e) { console.error(e); }
     }
 
-    function toggleCartExpand() {
-        const cart = document.getElementById('btn-ver-carrito');
-        cart.classList.toggle('expanded');
-        const label = document.getElementById('label-carrito');
-        const count = document.getElementById('cart-count').innerText;
-        label.innerText = cart.classList.contains('expanded') ? "🛒 Tu Pedido" : `Ver pedido (${count})`;
-    }
-
-    function toggleEntrega() {
-        const tipo = document.getElementById('tipo_entrega').value;
-        const inputDir = document.getElementById('direccion');
-        inputDir.style.display = tipo === 'retiro' ? 'none' : 'block';
-        inputDir.value = tipo === 'retiro' ? 'RETIRO EN LOCAL' : '';
-    }
-
     function agregar(id, nombre, precio) {
         const item = carrito.find(p => p.hamburguesa_id === id);
-        item ? item.cantidad++ : carrito.push({hamburguesa_id: id, nombre, precio, cantidad: 1});
+        if (item) {
+            item.cantidad++;
+        } else {
+            carrito.push({hamburguesa_id: id, nombre, precio, cantidad: 1});
+        }
+        actualizarUI();
+    }
+
+    function restar(id) {
+        const index = carrito.findIndex(p => p.hamburguesa_id === id);
+        if (index !== -1) {
+            if (carrito[index].cantidad > 1) {
+                carrito[index].cantidad--;
+            } else {
+                carrito.splice(index, 1);
+            }
+        }
+        actualizarUI();
+    }
+
+    function eliminar(index) {
+        carrito.splice(index, 1);
         actualizarUI();
     }
 
@@ -281,25 +245,33 @@
         let total = 0; let unidades = 0;
         detalle.innerHTML = '';
 
-        document.querySelectorAll('.btn-add').forEach(btn => {
-            btn.classList.remove('agregado');
-            btn.innerText = "AGREGAR";
-        });
-        document.querySelectorAll('.badge-count').forEach(badge => badge.remove());
+        // Resetear todos los controles de la lista a estado inicial
+        document.querySelectorAll('.btn-add-initial').forEach(b => b.style.display = 'block');
+        document.querySelectorAll('.qty-controls').forEach(b => b.style.display = 'none');
 
         carrito.forEach((p, index) => {
-            total += p.precio * p.cantidad; unidades += p.cantidad;
-            detalle.innerHTML += `<div class="cart-list-item"><span>${p.cantidad}x ${p.nombre}</span><div style="display:flex; align-items:center;"><strong style="margin-right:10px;">$${(p.precio * p.cantidad).toLocaleString('es-AR')}</strong><button class="btn-remove" onclick="eliminar(${index})">✕</button></div></div>`;
+            total += p.precio * p.cantidad; 
+            unidades += p.cantidad;
             
-            const btnCont = document.getElementById(`cont-${p.hamburguesa_id}`);
-            if(btnCont) {
-                const btn = btnCont.querySelector('.btn-add');
-                btn.classList.add('agregado');
-                btn.innerText = "AGREGADO";
-                let badge = btnCont.querySelector('.badge-count') || document.createElement('span');
-                badge.className = 'badge-count';
-                badge.innerText = p.cantidad;
-                btnCont.appendChild(badge);
+            // Dibujar en el carrito flotante
+            detalle.innerHTML += `
+                <div class="cart-list-item">
+                    <span>${p.cantidad}x ${p.nombre}</span>
+                    <div style="display:flex; align-items:center;">
+                        <strong style="margin-right:10px;">$${(p.precio * p.cantidad).toLocaleString('es-AR')}</strong>
+                        <button class="btn-remove" onclick="eliminar(${index})">✕</button>
+                    </div>
+                </div>`;
+            
+            // Actualizar botones en la lista del menú
+            const btnInit = document.getElementById(`btn-init-${p.hamburguesa_id}`);
+            const qtyCtrl = document.getElementById(`qty-ctrl-${p.hamburguesa_id}`);
+            const qtyVal = document.getElementById(`qty-val-${p.hamburguesa_id}`);
+            
+            if(btnInit && qtyCtrl) {
+                btnInit.style.display = 'none';
+                qtyCtrl.style.display = 'flex';
+                qtyVal.innerText = p.cantidad;
             }
         });
 
@@ -310,9 +282,17 @@
         if(unidades === 0) bar.classList.remove('expanded');
     }
 
-    function eliminar(index) {
-        carrito[index].cantidad > 1 ? carrito[index].cantidad-- : carrito.splice(index, 1);
-        actualizarUI();
+    function toggleCartExpand() {
+        const cart = document.getElementById('btn-ver-carrito');
+        cart.classList.toggle('expanded');
+        document.getElementById('label-carrito').innerText = cart.classList.contains('expanded') ? "🛒 Tu Pedido" : `Ver pedido (${document.getElementById('cart-count').innerText})`;
+    }
+
+    function toggleEntrega() {
+        const tipo = document.getElementById('tipo_entrega').value;
+        const inputDir = document.getElementById('direccion');
+        inputDir.style.display = tipo === 'retiro' ? 'none' : 'block';
+        inputDir.value = tipo === 'retiro' ? 'RETIRO EN LOCAL' : '';
     }
 
     function toggleModal(id, show) { document.getElementById(id).style.display = show ? 'block' : 'none'; }
@@ -333,20 +313,16 @@
         if(!inputs.nombre.value || !inputs.dir.value || !inputs.tel.value) return alert("Completa tus datos");
         
         const btn = document.getElementById('btn-procesar');
-        btn.disabled = true;
-        btn.innerText = "PROCESANDO...";
+        btn.disabled = true; btn.innerText = "PROCESANDO...";
 
         try {
             const res = await fetch('/pedidos', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    cliente: inputs.nombre.value, 
-                    direccion: inputs.dir.value, 
-                    telefono: inputs.tel.value, 
-                    tipo_entrega: inputs.entrega.value,
-                    metodo_pago: inputs.pago.value,
-                    items: carrito 
+                    cliente: inputs.nombre.value, direccion: inputs.dir.value, 
+                    telefono: inputs.tel.value, tipo_entrega: inputs.entrega.value,
+                    metodo_pago: inputs.pago.value, items: carrito 
                 })
             });
 
@@ -356,13 +332,9 @@
                 mostrarExito(datos, inputs.nombre.value, inputs.dir.value, inputs.pago.value, inputs.entrega.value);
             } else {
                 alert("Error al enviar pedido");
-                btn.disabled = false;
-                btn.innerText = "FINALIZAR COMPRA";
+                btn.disabled = false; btn.innerText = "FINALIZAR COMPRA";
             }
-        } catch (error) {
-            btn.disabled = false;
-            btn.innerText = "FINALIZAR COMPRA";
-        }
+        } catch (error) { btn.disabled = false; btn.innerText = "FINALIZAR COMPRA"; }
     }
 
     function mostrarExito(datos, cliente, direccion, pago, entrega) {
@@ -380,45 +352,25 @@
         const contenedorExtra = document.getElementById('contenedor-info-extra');
         const infoTransf = document.getElementById('info-transferencia');
         const infoRetiro = document.getElementById('info-retiro');
+        contenedorExtra.style.display = 'none'; infoTransf.style.display = 'none'; infoRetiro.style.display = 'none';
 
-        contenedorExtra.style.display = 'none';
-        infoTransf.style.display = 'none';
-        infoRetiro.style.display = 'none';
-
-        if(pago === 'transferencia') {
-            contenedorExtra.style.display = 'block';
-            infoTransf.style.display = 'block';
-        } 
-        
-        if(entrega === 'retiro') {
-            contenedorExtra.style.display = 'block';
-            infoRetiro.style.display = 'block';
-        }
+        if(pago === 'transferencia') { contenedorExtra.style.display = 'block'; infoTransf.style.display = 'block'; } 
+        if(entrega === 'retiro') { contenedorExtra.style.display = 'block'; infoRetiro.style.display = 'block'; }
 
         const msg = `*NUEVO PEDIDO #${datos.pedidoId} - HIGH BLEND* 🍔\n\n👤 *Cliente:* ${cliente}\n📍 *Entrega:* ${entrega.toUpperCase()}\n🏠 *Dirección:* ${direccion}\n💳 *Pago:* ${pago.toUpperCase()}\n--------------------------\n${detalleWsp}--------------------------\n💰 *TOTAL: $${datos.total.toLocaleString('es-AR')}*`;
         
         const btnWsp = document.getElementById('link-wsp');
         btnWsp.href = `https://wa.me/5491168184740?text=${encodeURIComponent(msg)}`;
-        
-        // MODIFICACIÓN: Al confirmar por WSP, cerramos modal, limpiamos carrito Y limpiamos inputs
-        btnWsp.onclick = function() {
+        btnWsp.onclick = () => {
             toggleModal('modal-exito', false);
-            // Limpiar inputs del formulario
-            document.getElementById('nombre').value = '';
-            document.getElementById('direccion').value = '';
-            document.getElementById('tel').value = '';
+            document.getElementById('nombre').value = ''; document.getElementById('direccion').value = ''; document.getElementById('tel').value = '';
         };
         
         toggleModal('modal-exito', true);
-        
-        // Limpiamos el carrito lógico y visual
         carrito = [];
         actualizarUI();
-
-        // Reseteamos el botón principal
         const btnProcesar = document.getElementById('btn-procesar');
-        btnProcesar.disabled = false;
-        btnProcesar.innerText = "FINALIZAR COMPRA";
+        btnProcesar.disabled = false; btnProcesar.innerText = "FINALIZAR COMPRA";
     }
 
     cargar();

@@ -61,7 +61,7 @@
         .card { background: white; color: #333; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column; height: 500px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); transition: 0.3s; border: 4px solid transparent; }
         .card-header { background: #eee; padding: 12px; display: flex; justify-content: space-between; font-weight: bold; border-bottom: 2px solid #ddd; }
         .card-body { padding: 15px; flex-grow: 1; overflow-y: auto; display: flex; flex-direction: column; }
-        .card-footer { padding: 10px; background: #f9f9f9; display: flex; gap: 5px; }
+        .card-footer { padding: 10px; background: #f9f9f9; display: flex; gap: 5px; min-height: 40px; }
 
         .item-line { border-bottom: 1px dashed #ccc; padding: 6px 0; display: flex; justify-content: space-between; }
         .cliente-info { font-size: 0.85rem; color: #666; margin-top: auto; background: #f0f0f0; padding: 10px; border-radius: 4px; border-left: 4px solid var(--rojo); }
@@ -325,7 +325,8 @@
             if(p.estado !== 'cancelado') totalVentas += parseFloat(p.total);
             
             const esNuevo = pedidosNuevos.has(Number(p.id)) ? 'card-nueva' : '';
-            const cardHtml = generarCardPedido(p, esNuevo);
+            // esConsulta = false para que aparezcan botones
+            const cardHtml = generarCardPedido(p, esNuevo, false);
 
             if (p.estado === 'enviado') {
                 htmlDespachados += cardHtml;
@@ -342,7 +343,7 @@
         document.title = pedidosNuevos.size > 0 ? "⚠️ NUEVO PEDIDO ⚠️" : "High Blend - Panel de Control";
     }
 
-    function generarCardPedido(p, esNuevo) {
+    function generarCardPedido(p, esNuevo, esConsulta) {
         const statusBadge = {
             'pendiente': 'badge-pendiente',
             'esperando_pago': 'badge-esperando',
@@ -350,6 +351,18 @@
             'cancelado': 'badge-cancelado'
         }[p.estado] || '';
         
+        // Si es consulta, no mostramos botones. Si no es consulta, mostramos según estado.
+        let botones = '';
+        if (!esConsulta) {
+            const btnDespachar = (p.estado === 'pendiente' || p.estado === 'esperando_pago') 
+                ? `<button class="btn btn-ready" onclick="event.stopPropagation(); cambiarEstado(${p.id}, 'enviado')">DESPACHAR</button>` 
+                : '';
+            const btnAnular = (p.estado !== 'cancelado') 
+                ? `<button class="btn btn-cancel" onclick="event.stopPropagation(); abrirModalAnular(${p.id})">ANULAR</button>` 
+                : '';
+            botones = btnDespachar + btnAnular;
+        }
+
         return `
             <div class="card ${esNuevo} ${p.estado === 'esperando_pago' ? 'status-esperando' : ''}" onclick="detenerAlerta(${p.id})">
                 <div class="card-header"><span>#${p.id}</span><span class="badge ${statusBadge}">${p.estado.toUpperCase()}</span></div>
@@ -358,8 +371,7 @@
                     <div class="cliente-info"><strong>👤 ${p.cliente}</strong><br>📍 ${p.direccion}<br>💳 ${p.metodo_pago}<h3>$${Number(p.total).toLocaleString()}</h3></div>
                 </div>
                 <div class="card-footer">
-                    ${p.estado === 'pendiente' || p.estado === 'esperando_pago' ? `<button class="btn btn-ready" onclick="event.stopPropagation(); cambiarEstado(${p.id}, 'enviado')">DESPACHAR</button>` : ''}
-                    ${p.estado !== 'cancelado' ? `<button class="btn btn-cancel" onclick="event.stopPropagation(); abrirModalAnular(${p.id})">ANULAR</button>` : ''}
+                    ${botones}
                 </div>
             </div>`;
     }
@@ -401,7 +413,8 @@
         let html = "";
         todosLosPedidos.forEach(p => {
             if(p.estado !== 'cancelado') totalSuma += parseFloat(p.total);
-            html += generarCardPedido(p, "");
+            // PASAMOS TRUE para ocultar botones en consulta
+            html += generarCardPedido(p, "", true);
         });
 
         document.getElementById('contenedor-consultas').innerHTML = html || "<p style='color:#333; padding:20px;'>Sin resultados en este rango.</p>";
