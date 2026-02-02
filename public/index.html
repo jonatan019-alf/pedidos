@@ -17,28 +17,28 @@
         .item-info p { color: #666; font-size: 0.9rem; margin: 4px 0; }
         .precio { color: var(--negro); font-weight: bold; font-size: 1.1rem; display: block; margin-top: 5px; }
         
-        /* Contenedor de botones ajustado */
-        .btn-container { display: flex; align-items: center; gap: 0; background: #eee; border-radius: 8px; overflow: hidden; height: 40px; }
-        .btn-add-initial { background: var(--rojo); color: white; border: none; padding: 0 15px; height: 40px; border-radius: 8px; font-weight: bold; text-transform: uppercase; cursor: pointer; font-size: 0.8rem; }
-        
-        /* Controles de cantidad */
-        .qty-controls { display: none; align-items: center; background: #eee; height: 40px; }
+       /* Elimina el fondo gris y el ancho fijo que rompen la estética */
+.btn-container { 
+    display: flex; 
+    align-items: center; 
+    justify-content: flex-end; /* Empuja el botón a la derecha */
+    background: transparent;    /* Quitamos el fondo gris de fondo */
+    min-width: 100px; 
+}
+
+        /* Ajusta el botón rojo para que no se corte el texto */
+        .btn-add-initial { background: var(--rojo); color: white; border: none; padding: 10px 15px; /* Padding equilibrado */border-radius: 8px; font-weight: bold; text-transform: uppercase; cursor: pointer; font-size: 0.85rem; white-space: nowrap; /* Evita que el texto se parta en dos líneas */}
+
+        /* Ajusta los controles de cantidad para que mantengan el mismo espacio */
+        .qty-controls { display: none; align-items: center; background: #eee; border-radius: 8px; /* Redondeamos el control de +/- */overflow: hidden;}
         .btn-qty { background: var(--negro); color: white; border: none; width: 35px; height: 40px; font-size: 1.2rem; font-weight: bold; cursor: pointer; }
         .btn-qty:active { opacity: 0.7; }
         .qty-num { width: 35px; text-align: center; font-weight: bold; color: var(--negro); font-size: 1rem; }
 
-        .floating-cart { 
-            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
-            width: 90%; max-width: 450px; background: var(--negro); color: white; 
-            border-radius: 15px; display: none; flex-direction: column;
-            box-shadow: 0 -5px 25px rgba(0,0,0,0.4); z-index: 1000; 
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);
-            overflow: hidden; max-height: 65px;
-        }
+        .floating-cart { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 450px; background: var(--negro); color: white; border-radius: 15px; display: none; flex-direction: column;box-shadow: 0 -5px 25px rgba(0,0,0,0.4); z-index: 1000; transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.1);overflow: hidden; max-height: 65px;}
 
         .floating-cart.expanded {
-            max-height: 85vh; bottom: 0; width: 100%; max-width: 100%; border-radius: 25px 25px 0 0;
-        }
+            max-height: 85vh; bottom: 0; width: 100%; max-width: 100%; border-radius: 25px 25px 0 0;}
 
         .drag-handle { width: 40px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 2px; margin: 8px auto 2px; display: block; }
         .cart-header-click { display: flex; justify-content: space-between; align-items: center; padding: 5px 25px 15px; cursor: pointer; width: 100%; box-sizing: border-box; }
