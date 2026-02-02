@@ -1,23 +1,26 @@
-# Pedidos 🍔
+# 🍔 High Blend - Panel de Control Gastronómico
 
-Sistema web para la gestión de pedidos de una hamburguesería con delivery.
+¡Bienvenido a **High Blend**! Este es un sistema de gestión de pedidos en tiempo real diseñado para optimizar la operación de locales gastronómicos. Permite administrar ventas, stock y generar reportes profesionales de forma ágil.
 
-Permite administrar clientes, pedidos y estados de entrega, simulando el funcionamiento real de un comercio gastronómico.
+## 🚀 Características Principales
 
-## Funcionalidades
-- Alta y gestión de clientes
-- Creación de pedidos con productos y observaciones
-- Estados del pedido: pendiente, en preparación, en camino, entregado, cancelado
-- Vista de pedidos del día
-- Cálculo automático del total
+* **Gestión en Tiempo Real:** Recepción de pedidos instantánea mediante **Socket.io**.
+* **Alertas Visuales:** Sistema de notificaciones y parpadeo de tarjetas para pedidos nuevos.
+* **Control de Stock:** Activación/Desactivación de productos y categorías al instante.
+* **Reportes PDF:** Generación de reportes de ventas mensuales/diarios con formato horizontal (A4) y cálculos automáticos de recaudación.
+* **Interfaz Dark Mode:** Diseño moderno, responsivo y optimizado para la vista en entornos de trabajo.
 
-## Tecnologías
-- Frontend: React
-- Backend: Node.js + Express
-- Base de datos: SQLite / MongoDB
+## 🛠️ Tecnologías Usadas
 
-## Objetivo del proyecto
-Proyecto desarrollado con fines educativos y de portfolio, enfocado en buenas prácticas y lógica de negocio real.
+* **Frontend:** HTML5, CSS3 (Custom Properties), JavaScript (Vanilla).
+* **Backend:** Node.js, Express.
+* **Comunicación:** Socket.io (WebSockets).
+* **Librerías de Reporte:** jsPDF, jsPDF-AutoTable.
 
-## Cómo ejecutar el proyecto
-(Próximamente)
+## 📦 Instalación y Uso
+
+Si querés probar este proyecto localmente, seguí estos pasos:
+
+1. **Clonar el repositorio:**
+   ```bash
+   git clone [https://github.com/tu-usuario/high-blend.git](https://github.com/tu-usuario/high-blend.git)
