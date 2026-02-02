@@ -362,7 +362,7 @@
         if(pago === 'transferencia') { contenedorExtra.style.display = 'block'; infoTransf.style.display = 'block'; } 
         if(entrega === 'retiro') { contenedorExtra.style.display = 'block'; infoRetiro.style.display = 'block'; }
 
-        const msg = `*NUEVO PEDIDO #${datos.pedidoId} - HIGH BLEND* 🍔\n\n👤 *Cliente:* ${cliente}\n📍 *Entrega:* ${entrega.toUpperCase()}\n🏠 *Dirección:* ${direccion}\n💳 *Pago:* ${pago.toUpperCase()}\n--------------------------\n${detalleWsp}--------------------------\n💰 *TOTAL: $${datos.total.toLocaleString('es-AR')}*`;
+        const msg = `*NUEVO PEDIDO #${datos.pedidoId} - HIGH BLEND* 🍔\n\n👤 *Cliente:* ${cliente}\n📍 *Entrega:* ${entrega.toUpperCase()}\n🏠 *Dirección:* ${direccion}\n💳 *Pago:* ${pago.toUpperCase()}\n--------------------------\n${detalleWsp}--------------------------\n💰 *TOTAL: $${datos.total.toLocaleString('es-AR')}*\n *ALIAS: alias.hb.mp \n *CBU: 000000`;
         
         const btnWsp = document.getElementById('link-wsp');
         btnWsp.href = `https://wa.me/5491168184740?text=${encodeURIComponent(msg)}`;
