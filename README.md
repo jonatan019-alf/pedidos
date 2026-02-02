@@ -1,4 +1,4 @@
-#  High Blend - Panel de Control Gastronómico
+#   - Panel de Control Gastronómico
 
 ¡Bienvenido a **High Blend**! Este es un sistema de gestión de pedidos en tiempo real diseñado para optimizar la operación de locales gastronómicos. Permite administrar ventas, stock y generar reportes profesionales de forma ágil.
 
