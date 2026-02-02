@@ -19,8 +19,6 @@
 
 ## 📦 Instalación y Uso
 
-Si querés probar este proyecto localmente, seguí estos pasos:
 
-1. **Clonar el repositorio:**
-   ```bash
-   git clone [https://github.com/tu-usuario/high-blend.git](https://github.com/tu-usuario/high-blend.git)
+**Clonar el repositorio: TODAVIA EN PROCESO**
+ 
